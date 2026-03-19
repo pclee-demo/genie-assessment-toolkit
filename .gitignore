@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.eggs/
+*.egg-info/
+
+# Environments
+.env
+.venv
+venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Databricks
+.databricks/
