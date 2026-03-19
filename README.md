@@ -125,4 +125,4 @@ See [`examples/FinanceFirst_Bank_Retail_Wealth_example.md`](examples/FinanceFirs
 4. Area 7 — semantic layer (consistency of KPI calculations)
 5. Areas 1, 4, 5, 6 — curation, instructions, questions, benchmarks
 
-**Advisory flags** (prefixed in findings) don't affect the score but surface governance and best-practice gaps worth addressing before a broader rollout.
+Some findings don't affect the score but surface governance and best-practice gaps worth addressing before a broader rollout.
