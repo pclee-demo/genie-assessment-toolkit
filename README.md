@@ -58,27 +58,13 @@ Reports are saved to `/Workspace/Users/<you>/genie-assessments/<space>_<date>.md
 
 ## Usage
 
-### 1. Clone the repo and import to your Databricks workspace
+### 1. Add to your Databricks workspace
 
-```bash
-git clone https://github.com/pclee-demo/genie-assessment-toolkit.git
-cd genie-assessment-toolkit
-```
+In the Databricks UI: **Workspace > Git folders > Add Git folder**
 
-Then import to your workspace:
+Paste the repo URL: `https://github.com/pclee-demo/genie-assessment-toolkit`
 
-```bash
-databricks workspace mkdirs /Workspace/Users/<you>/genie-assessment-toolkit/notebooks
-databricks workspace mkdirs /Workspace/Users/<you>/genie-assessment-toolkit/src/genie_assessment
-
-databricks workspace import /Workspace/Users/<you>/genie-assessment-toolkit/notebooks/01_assess_genie_space \
-  --file notebooks/01_assess_genie_space.py --format SOURCE --language PYTHON --overwrite
-
-for f in fetch score recommend llm report; do
-  databricks workspace import /Workspace/Users/<you>/genie-assessment-toolkit/src/genie_assessment/$f \
-    --file src/genie_assessment/$f.py --format SOURCE --language PYTHON --overwrite
-done
-```
+The full folder structure will be cloned directly into your workspace — no CLI required.
 
 ### 2. Open the notebook
 
