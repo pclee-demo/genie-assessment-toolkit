@@ -58,16 +58,14 @@ Reports are saved to `/Workspace/Users/<you>/genie-assessments/<space>_<date>.md
 
 ## Usage
 
-### 1. Import to your Databricks workspace
-
-Import the full folder to your workspace, preserving the directory structure:
+### 1. Clone the repo and import to your Databricks workspace
 
 ```bash
-# From the repo root
-databricks workspace import-dir . /Workspace/Users/<you>/genie-assessment-toolkit --overwrite
+git clone https://github.com/pclee-demo/genie-assessment-toolkit.git
+cd genie-assessment-toolkit
 ```
 
-Or import the notebook and source files individually:
+Then import to your workspace:
 
 ```bash
 databricks workspace mkdirs /Workspace/Users/<you>/genie-assessment-toolkit/notebooks
