@@ -132,6 +132,8 @@ Each source file is a Databricks notebook run via `%run`. Variables flow between
 
 **Work through findings in area order** — blockers in Area 0 (joins, permissions) will compound problems in every other area. Fix the foundation before tuning the content.
 
+See [`examples/FinanceFirst_Bank_Retail_Wealth_example.md`](examples/FinanceFirst_Bank_Retail_Wealth_example.md) for a full sample report against a "mid" quality Genie space — retail banking + wealth management, 7 tables, score 13/24 (RECOMMEND REBUILD).
+
 **Priority order for a typical remediation:**
 1. Area 0 — permissions and joins (space won't work at all without these)
 2. Area 2 — metadata quality (biggest driver of answer accuracy)
