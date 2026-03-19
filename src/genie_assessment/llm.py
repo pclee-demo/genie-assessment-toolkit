@@ -141,7 +141,11 @@ Be concise and practical. Use plain business language, not SQL or technical jarg
           (" + UC lineage" if USE_SYSTEM_TABLES and lineage_block else " — metadata only"))
     print(DIVIDER)
     domain_output = llm_query(domain_prompt)
-    print(domain_output)
+    if domain_output.startswith("[LLM unavailable"):
+        print(f"⚠ LLM unavailable — domain curation skipped. {domain_output}")
+        domain_output = ""
+    else:
+        print(domain_output)
     print(DIVIDER)
 else:
     print("✓ Table curation looks good — domain split analysis not required.")
@@ -173,7 +177,11 @@ print(f"Model: {LLM_MODEL}" +
       (" + UC lineage" if USE_SYSTEM_TABLES and lineage_for_q else " — metadata only"))
 print(DIVIDER)
 question_output = llm_query(question_prompt, max_tokens=2000)
-print(question_output)
+if question_output.startswith("[LLM unavailable"):
+    print(f"⚠ LLM unavailable — sample questions skipped. {question_output}")
+    question_output = ""
+else:
+    print(question_output)
 print(DIVIDER)
 print("\n💡 Use the output above to populate:")
 if sq_count < 10:
