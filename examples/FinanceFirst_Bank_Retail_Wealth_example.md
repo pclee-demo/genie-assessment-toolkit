@@ -17,7 +17,7 @@
 | 5. Sample Questions | 2/3 | 🟡 OK   |
 | 6. Benchmarks | 2/3 | 🟡 OK   |
 | 7. Semantic Layer | 1/3 | 🔴 Poor |
-| **TOTAL** | **13/24** | | |
+| **TOTAL** | **13/24** | |
 
 ---
 

@@ -178,7 +178,7 @@ for area, score, label, area_flags in zip(areas, scores, labels, flags):
     md_lines.append(f"| {area} | {score_str} | {rating} |")
 
 md_lines += [
-    f"| **TOTAL** | **{total_str}** | | |",
+    f"| **TOTAL** | **{total_str}** | |",
     "",
     "---",
     "",

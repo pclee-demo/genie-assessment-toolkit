@@ -70,8 +70,8 @@ if a1 == 1:
         "Do not onboard business users until table count is reduced to ≤10 focused tables",
         "Replace any raw/bronze/silver tables with gold or semantic-layer equivalents",
         *(["Apply UC tags to clarify layer for all tables before rebuilding: "
-           "ALTER TABLE <name> SET TAGS ('layer' = 'gold'|'silver'|'bronze') — "
-           "confirmed non-gold: " + ", ".join(non_gold[:3])] if non_gold or gold_untagged else []),
+           "ALTER TABLE <name> SET TAGS ('layer' = 'gold'|'silver'|'bronze')"
+           + (" — confirmed non-gold: " + ", ".join(non_gold[:3]) if non_gold else "")] if non_gold or gold_untagged else []),
         "For wide tables: hide irrelevant columns in Configuration > Data, or create purpose-built views exposing only the columns users need",
         "Add a space description: purpose statement + Key Metrics + Dimensions + Data grain + Target Users",
     ]))

@@ -1,7 +1,7 @@
 # Databricks notebook source
-# ── score.py: Score Areas 1–7 + verdict ──────────────────────────────────────
+# ── score.py: Score Areas 0–7 + verdict ──────────────────────────────────────
 # Requires: all variables from fetch.py + SPACE_ID, USE_SYSTEM_TABLES
-# Produces: a1–a7, a1l–a7l, a1_flags–a7_flags, scores, labels, areas, flags,
+# Produces: a0–a7, a0l–a7l, a0_flags–a7_flags, scores, labels, areas, flags,
 #           total, max_total, total_str, verdict, verdict_note,
 #           plus intermediate vars used by recommend.py and report.py
 

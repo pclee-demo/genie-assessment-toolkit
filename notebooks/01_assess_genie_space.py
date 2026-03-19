@@ -7,7 +7,7 @@
 # MAGIC **What this checks:**
 # MAGIC | Area | What it looks for |
 # MAGIC |------|-------------------|
-# MAGIC | 0. Data & UC Readiness | Genie joins, PK/FK constraints, table ownership, serverless warehouse, Knowledge Store |
+# MAGIC | 0. Data & UC Readiness | Genie joins, PK/FK constraints, table ownership, serverless warehouse, space & warehouse permissions, UC table grants |
 # MAGIC | 1. Table & Space Curation | Table count, layer quality, space description |
 # MAGIC | 2. Metadata Quality | Column coverage, table comments, value dictionaries, type safety |
 # MAGIC | 3. Example SQL | Count, query-type coverage, hardcoded values, parameterisation |
