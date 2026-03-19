@@ -221,7 +221,7 @@ if recs:
     for i, (area, severity, items) in enumerate(recs, 1):
         print(f"{i}. {severity}  {area}")
         for item in items:
-            print(f"   • {item.removeprefix('(Advisory) ')}")
+            print(f"   • {item}")
         print()
 else:
     print("✅ No issues found — space looks production ready.")

@@ -51,21 +51,20 @@ elif 0 < pk_fk_count < table_count:
         + " — add constraints so Genie can automatically resolve join paths"
     )
 
-# Advisory flags (no score impact — prefixed so they're visually distinct in reports)
 if unowned_tables:
     a0_flags.append(
-        f"(Advisory) Tables without assigned owner: {', '.join(unowned_tables[:5])}"
+        f"Tables without assigned owner: {', '.join(unowned_tables[:5])}"
         + (f" (+{len(unowned_tables)-5} more)" if len(unowned_tables) > 5 else "")
         + " — assign ownership in UC for governance and accountability"
     )
 if is_serverless is False:
     a0_flags.append(
-        "(Advisory) Space is not using a Serverless SQL warehouse — serverless is "
+        "Space is not using a Serverless SQL warehouse — serverless is "
         "recommended for Genie (lower latency, auto-scaling, no cold-start penalty)"
     )
 if not tagged_count and table_count > 0:
     a0_flags.append(
-        "(Advisory) No UC tags found on any table — consider tagging with domain, "
+        "No UC tags found on any table — consider tagging with domain, "
         "data classification, and sensitivity labels for governance"
     )
 
@@ -121,7 +120,7 @@ if tables_no_grant:
     )
 if tables_grant_unknown:
     a0_flags.append(
-        f"(Advisory) Could not verify grants on {len(tables_grant_unknown)} table(s): "
+        f"Could not verify grants on {len(tables_grant_unknown)} table(s): "
         f"{', '.join(tables_grant_unknown[:3])}"
         + (f" (+{len(tables_grant_unknown)-3} more)" if len(tables_grant_unknown) > 3 else "")
         + " — run SHOW GRANTS ON TABLE as a UC admin to verify access"
@@ -499,7 +498,7 @@ elif sq_count < 10:
     a5_flags.append(f"Only {sq_count} sample questions — recommend 10+ to guide business users")
 if sq_count > 0:
     a5_flags.append(
-        "(Advisory) Manually verify questions cover a range of metrics, dimensions, time periods, "
+        "Manually verify questions cover a range of metrics, dimensions, time periods, "
         "and user personas — 10 questions all asking about the same metric provide less value than "
         "10 questions spread across different business areas and question types"
     )
@@ -507,10 +506,10 @@ if sq_count > 0:
 # ── Area 6: Benchmarks ───────────────────────────────────────────────────────
 bm_count      = len(benchmarks)
 bm_missing_sql = [b for b in benchmarks if not (b.get("answer_text") or "").strip()]
-HARDCODED_PAT  = [r"= '[A-Z0-9]{4,}'", r"WHERE \w+ = '\w+'", r"= \d{5,}"]
+BM_HARDCODED_PAT = [r"= '[A-Z0-9]{4,}'", r"WHERE \w+ = '\w+'", r"= \d{5,}"]
 bm_hardcoded   = [
     b.get("question_text","")[:50] for b in benchmarks
-    if any(re.search(p, b.get("answer_text","")) for p in HARDCODED_PAT)
+    if any(re.search(p, b.get("answer_text","")) for p in BM_HARDCODED_PAT)
 ]
 
 if bm_count >= 15:   a6, a6l = 3, "Good"

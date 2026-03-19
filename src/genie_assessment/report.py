@@ -194,7 +194,7 @@ for area, score, label, area_flags in zip(areas, scores, labels, flags):
         md_lines.append("✅ No issues found.")
     else:
         for flag in area_flags:
-            md_lines.append(f"- ⚠ {flag.removeprefix('(Advisory) ')}")
+            md_lines.append(f"- ⚠ {flag}")
     md_lines.append("")
 
 md_lines += [
@@ -207,7 +207,7 @@ if recs:
     for i, (area, severity, items) in enumerate(recs, 1):
         md_lines.append(f"### {i}. {severity.strip()}  —  {area}")
         for item in items:
-            md_lines.append(f"- {item.removeprefix('(Advisory) ')}")
+            md_lines.append(f"- {item}")
         md_lines.append("")
 else:
     md_lines.append("✅ No issues found — space looks production ready.")
