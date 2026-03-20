@@ -190,3 +190,110 @@ if bm_count < 15:
     print(f"   • Benchmarks ({bm_count}/15 configured) — Configuration > Benchmarks")
 if not measures_ex:
     print(f"   • SQL Expression Measures (0 configured) — Configuration > SQL Expressions — use the KPIs above as a starting point")
+
+# ── Instructions Generator (LLM-drafted, best-practice-guided) ───────────────
+instructions_output = ""
+if a4 < 3 or not text_instructions:
+    # Extract existing text instructions content for context (rewrite mode)
+    existing_instr_text = ""
+    if text_instructions:
+        parts = []
+        for instr in text_instructions:
+            content = (instr.get("content") or instr.get("text") or "").strip()
+            if content:
+                parts.append(content)
+        existing_instr_text = "\n\n---\n\n".join(parts)
+
+    # Key guidance distilled from Databricks Genie Space Playbook (Step 3.1)
+    INSTR_BEST_PRACTICES = """\
+BEST PRACTICES (Databricks Genie Space Playbook — Step 3.1):
+Target length: 50–100 lines. Use this 8-section structure:
+
+## Role  (5–10 lines)
+"You are a [role] helping [users] answer questions about [domain]. Your goal is to [objective]."
+Behavioural rules: be concise; ask for clarification if unclear; do not choose filter values without instruction.
+
+## Instructions  (general behavioural rules, 3–5 lines)
+
+## Critical Rules  (10–20 lines — table-type-specific, REQUIRED)
+• Fact table:    "This table contains one row per [event]. Default filters always apply: [list]."
+• Metrics mart:  "This table has ONE row per metric per dimension per time period.
+                  To query a metric you MUST filter by metric_alias (e.g. 'Revenue').
+                  Volume metrics: SUM(value_denom). Ratio metrics: try_divide(SUM(value_num), SUM(value_denom))."
+• Wide table:    describe grain + any required filters.
+
+## Default Filters  (filters that always apply, e.g. is_deleted = false)
+
+## Business Terms  (10–15 lines — domain-specific definitions, synonyms, abbreviations only)
+
+## Date Handling  (5–10 lines — real date column name(s), fiscal year offset if any, default period)
+
+## Dimension Hierarchies  (5–10 lines — e.g. Region > Country > City)
+
+## Data Quality Notes  (known NULLs, stale data, caveats)
+
+WHAT NOT TO INCLUDE:
+• SQL examples (belong in SQL Queries tab)
+• Column lists or schema descriptions (Genie reads UC metadata directly)
+• Inline SQL in text
+• Verbose explanations or step-by-step guides
+• Emphatic overrides ("NEVER do X") — fix the data model instead
+"""
+
+    # Build existing-instructions context block (rewrite mode)
+    existing_section = ""
+    if existing_instr_text:
+        issues = []
+        if schema_hits > 3:
+            issues.append("- Contains schema/data dictionary content — remove it (Genie reads UC metadata directly)")
+        if inline_sql_blocks:
+            issues.append(f"- Contains inline SQL ({', '.join(inline_sql_blocks[:2])}) — move to SQL Queries tab")
+        if emphatic_blocks:
+            issues.append(f"- Contains emphatic overrides ({', '.join(emphatic_blocks[:2])}) — replace with structural rules")
+        if total_instr_lines > 100:
+            issues.append(f"- Too long ({total_instr_lines} lines) — trim to 50–100 lines")
+        issues_str = "\n".join(issues) if issues else "- No specific issues flagged; improve domain specificity."
+        existing_section = (
+            f"\nEXISTING INSTRUCTIONS (rewrite and improve — do not just copy):\n"
+            f"{existing_instr_text[:3000]}\n\n"
+            f"Issues to fix:\n{issues_str}\n"
+        )
+
+    lineage_hint = (
+        f"\nLINEAGE CONTEXT (use to infer business relationships):\n{lineage_block[:600]}\n"
+        if lineage_block else ""
+    )
+
+    instructions_prompt = f"""You are a Databricks Genie configuration expert. Generate a complete, ready-to-paste Genie space instructions block for a space called "{space_name_str}".
+
+{INSTR_BEST_PRACTICES}
+TABLE METADATA (primary source — use real column names and business context from this):
+{metadata_block}{lineage_hint}{existing_section}
+TASK:
+Write a complete instructions block using the 8-section template above. Requirements:
+1. Fill every section with real, domain-specific content inferred from the table metadata — no generic placeholders like "[define here]" unless you genuinely cannot infer the value (then use [placeholder: description]).
+2. Infer the table type (fact / metrics mart / wide) and use the matching Critical Rules pattern.
+3. Use the actual date column name(s) from the metadata in Date Handling.
+4. Identify coded or status columns (e.g. type flags, status codes) and define their values in Business Terms.
+5. Keep total length 50–100 lines.
+6. Output ONLY the instructions block — no preamble, no explanation, no markdown code fences."""
+
+    mode_str = (
+        f"rewrite of existing instructions (assessed: {a4l})"
+        if existing_instr_text else "generate from scratch (no existing instructions)"
+    )
+    print(DIVIDER)
+    print("INSTRUCTIONS DRAFT  (LLM-generated · best-practice-guided)")
+    print(f"Model: {LLM_MODEL}  |  Mode: {mode_str}")
+    print(DIVIDER)
+    instructions_output = llm_query(instructions_prompt, max_tokens=2000)
+    if instructions_output.startswith("[LLM unavailable"):
+        print(f"⚠ LLM unavailable — instructions generation skipped. {instructions_output}")
+        instructions_output = ""
+    else:
+        print(instructions_output)
+    print(DIVIDER)
+    print("\n💡 Review this draft before deploying:")
+    print("   • Verify all inferred values (dates, filters, business terms) against your actual data")
+    print("   • Remove any [placeholder] items you cannot fill in yet")
+    print("   • Copy into: Configuration > Instructions > Text tab")

@@ -249,23 +249,39 @@ if question_output:
         "",
     ]
 
-# Instructions template section (if generated)
-if instructions_template:
+# Instructions section — prefer LLM-generated draft, fall back to static template
+_instr_content = instructions_output or instructions_template
+if _instr_content:
+    if instructions_output:
+        _instr_title = "Instructions Draft (LLM-generated · best-practice-guided)"
+        _instr_desc  = (
+            "These instructions were drafted by the LLM from your table metadata, guided by the Databricks "
+            "Genie Space Playbook (Step 3.1). They are a starting point — not final copy. "
+            "Before deploying: verify all inferred values (date columns, status codes, filters), "
+            "remove any `[placeholder]` items you cannot fill in yet, and keep total length under 100 lines."
+        )
+        _instr_note  = "> Review, edit, then copy into: **Configuration > Instructions > Text tab**"
+    else:
+        _instr_title = "Starter: Instructions Template"
+        _instr_desc  = (
+            "Genie instructions should contain business rules that cannot be inferred from Unity Catalog metadata — "
+            "things like fiscal year definitions, default filters, KPI formulas, and NULL semantics. "
+            "The template below provides a recommended 8-section structure. "
+            "Fill in the bracketed placeholders, remove any sections that don't apply, and keep the total under 100 lines. "
+            "Do not copy in schema descriptions or column lists — Genie reads those directly from UC."
+        )
+        _instr_note  = "> Copy into: **Configuration > Instructions > Text tab**"
     md_lines += [
         "---",
         "",
-        "## Starter: Instructions Template",
+        f"## {_instr_title}",
         "",
-        ("Genie instructions should contain business rules that cannot be inferred from Unity Catalog metadata — "
-         "things like fiscal year definitions, default filters, KPI formulas, and NULL semantics. "
-         "The template below provides a recommended 7-section structure. "
-         "Fill in the bracketed placeholders, remove any sections that don't apply, and keep the total under 100 lines. "
-         "Do not copy in schema descriptions or column lists — Genie reads those directly from UC."),
+        _instr_desc,
         "",
-        "> Copy into: **Configuration > Instructions > Text tab**",
+        _instr_note,
         "",
         "```",
-        instructions_template,
+        _instr_content,
         "```",
         "",
     ]
