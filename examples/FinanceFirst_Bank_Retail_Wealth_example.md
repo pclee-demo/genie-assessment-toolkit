@@ -1,5 +1,5 @@
 # Genie Assessment: FinanceFirst Bank — Retail & Wealth
-**Date:** 2026-03-19  |  **Space ID:** 01f1233c935c1cbb972daee59daa8031  |  **Score:** 13/24  |  **Verdict:** RECOMMEND REBUILD
+**Date:** 2026-03-20  |  **Space ID:** 01f1233c935c1cbb972daee59daa8031  |  **Score:** 13/24  |  **Verdict:** RECOMMEND REBUILD
 
 > Significant rework needed — consider starting with a focused domain
 
@@ -122,171 +122,254 @@
 
 ---
 
-## Domain Curation Guide (LLM-assisted)
-
-This space contains too many tables across multiple business domains, which degrades Genie's accuracy. The guide below — generated from your table metadata — identifies distinct domains, recommends which tables belong in each, and suggests a focused name for each resulting space. Use it to plan a table reduction before onboarding business users.
-
-Based on the table metadata, I've identified the following:
-
-**Business Domains:**
-
-1. **Customer Management**: Customer information and relationships.
-2. **Account and Transaction Management**: Bank account balances, transactions, and related products.
-3. **Lending and Credit**: Loan and credit card products.
-4. **Investments**: Investment portfolios and holdings.
-
-**Table Assignments:**
-
-1. **Customer Management**: customers, employees (not present, but referenced as a foreign key)
-2. **Account and Transaction Management**: accounts, transactions
-3. **Lending and Credit**: loans, credit_cards
-4. **Investments**: portfolios, holdings
-
-**Cross-Domain Join Dependencies:**
-
-* customers table is referenced by accounts, loans, credit_cards, and portfolios, indicating a need to resolve these dependencies before splitting.
-
-**Genie Space Names:**
-
-1. **Customer Management**: "FinanceFirst Bank — Customer Profiles"
-2. **Account and Transaction Management**: "FinanceFirst Bank — Account Transactions"
-3. **Lending and Credit**: "FinanceFirst Bank — Lending Products"
-4. **Investments**: "FinanceFirst Bank — Investment Portfolios"
-
-**Redundant or Out-of-Scope Tables:**
-
-* None appear redundant, but the employees table (referenced as a foreign key) is missing and should be included in the Customer Management domain.
-
----
-
 ## Sample Questions & KPIs (LLM-generated)
 
 These questions and KPIs were generated from your table metadata. Use them in three ways: (1) add the best ones as **Sample Questions** (Configuration > Sample Questions) to give business users a starting point when they open the space; (2) use the top 5 marked questions as **Benchmarks** (Configuration > Benchmarks) with a manually verified SQL answer to measure and track Genie's accuracy over time; (3) use the **KPIs** as the basis for **SQL Expression Measures** (Configuration > SQL Expressions) — each KPI should become a named, reusable formula so Genie can answer questions about it consistently without recalculating from scratch every time.
 
-### Questions a Business User Would Ask
+### 15 Realistic Questions a Business User Would Ask
 
-1. What is the total number of customers we have across all segments? (Aggregation)
-2. How many new customers were onboarded in the last quarter? (Filter)
-3. What is the trend of savings account balances over the past year? (Trend over time)
-4. Which customer segment has the highest average account balance? (Comparison)
-5. What are the top 5 most common transaction types for retail customers? (Top-N)
-6. How many active credit cards do we have, and what is the total credit limit? (Aggregation)
-7. What is the average interest rate for term deposit accounts? (Aggregation)
-8. How many customers have a pending Know Your Customer (KYC) status? (Filter)
-9. What is the monthly growth rate of new loan applications? (Trend over time)
-10. **What are the top 10 customers with the highest total investment portfolio value?** (Top-N) - Benchmark
-11. How many transactions are processed through the mobile channel each month? (Aggregation)
-12. What is the average age of our premier customers? (Aggregation)
-13. **What is the total value of all outstanding loans, and how does it compare to the previous year?** (Comparison) - Benchmark
-14. **What percentage of customers have more than one account type?** (Aggregation) - Benchmark
-15. **How many customers are at risk of missing a loan payment, based on their current outstanding balance and due date?** (Filter) - Benchmark
+1. What is the total value of all investment portfolios? (Aggregation)
+2. How many customers have an active loan? (Filter)
+3. What is the trend of average account balance over the past year? (Trend over time)
+4. Which segment of customers (retail or premier) has a higher average account balance? (Comparison)
+5. What are the top 10 customers with the highest total value of investment portfolios? (Top-N)
+6. How many credit cards are currently issued to customers? (Aggregation)
+7. What is the total amount of transactions processed in the last quarter? (Aggregation)
+8. How does the average credit limit of credit cards compare between retail and premier customers? (Comparison)
+9. What is the monthly growth rate of new customers? (Trend over time)
+10. How many customers have a pending Know Your Customer (KYC) verification status? (Filter)
+11. What are the top 5 loan products by total principal amount? (Top-N)
+12. How has the average interest rate of savings accounts changed over the past two years? (Trend over time)
+13. What is the total outstanding balance of all active loans? (Aggregation)
+14. How do the average transaction amounts differ between ATM and branch channels? (Comparison)
+15. What are the bottom 10 customers with the lowest available credit on their credit cards? (Top-N)
 
-### Benchmark Questions
+### 5 Most Important Benchmark Questions
 
-The following five questions are marked as benchmark questions because they cover critical aspects of the business, including customer segmentation, loan and investment performance, and risk management:
+1. **What is the trend of average account balance over the past year?** (Trend over time) **(Benchmark)**
+2. **What are the top 10 customers with the highest total value of investment portfolios?** (Top-N) **(Benchmark)**
+3. **How many customers have an active loan?** (Filter) **(Benchmark)**
+4. **What is the total amount of transactions processed in the last quarter?** (Aggregation) **(Benchmark)**
+5. **What is the monthly growth rate of new customers?** (Trend over time) **(Benchmark)**
 
-1. What are the top 10 customers with the highest total investment portfolio value?
-2. What is the total value of all outstanding loans, and how does it compare to the previous year?
-3. What percentage of customers have more than one account type?
-4. How many customers are at risk of missing a loan payment, based on their current outstanding balance and due date?
-5. **What is the average customer lifetime value for our retail segment?** (Aggregation) - Benchmark
+### 5 KPIs to Monitor Regularly
 
-### KPIs to Monitor
+1. **KPI Name:** Monthly Active Customers
+   - **Description:** Measures the number of customers who have had at least one transaction in the last 30 days.
+   - **Formula Hint:** COUNT of distinct customers with at least one transaction in the last 30 days.
 
-1. **Monthly Active Customers**
-Measures: The number of customers who have performed at least one transaction in the last 30 days.
-Formula Hint: COUNT of distinct customers with at least one transaction in the last 30 days.
+2. **KPI Name:** Average Account Balance
+   - **Description:** Tracks the average current balance across all active accounts.
+   - **Formula Hint:** SUM of current account balances divided by COUNT of active accounts.
 
-2. **Total Investment Portfolio Value**
-Measures: The total market value of all investment portfolios.
-Formula Hint: SUM of total portfolio values for all customers.
+3. **KPI Name:** Loan Portfolio Risk
+   - **Description:** Monitors the total outstanding balance of loans that are past due.
+   - **Formula Hint:** SUM of outstanding loan balances where the loan is past due.
 
-3. **Loan Default Risk**
-Measures: The percentage of customers with outstanding loans who are at risk of missing a payment.
-Formula Hint: COUNT of customers with loans past due divided by the total number of customers with loans.
+4. **KPI Name:** Credit Card Utilization Rate
+   - **Description:** Measures the average percentage of used credit compared to the total credit limit across all credit cards.
+   - **Formula Hint:** AVERAGE of (current balance / credit limit) for all credit cards.
 
-4. **Average Customer Balance**
-Measures: The average balance across all customer accounts.
-Formula Hint: SUM of all account balances divided by the total number of accounts.
-
-5. **Credit Utilization Rate**
-Measures: The average percentage of available credit used by customers with credit cards.
-Formula Hint: SUM of current credit card balances divided by the SUM of credit limits for all credit cards.
+5. **KPI Name:** New Customer Acquisition Rate
+   - **Description:** Tracks the number of new customers acquired over a specified period.
+   - **Formula Hint:** COUNT of new customers onboarded within the last month.
 
 ---
 
-## Starter: Instructions Template
+## Instructions Draft (LLM-generated)
 
-Genie instructions should contain business rules that cannot be inferred from Unity Catalog metadata — things like fiscal year definitions, default filters, KPI formulas, and NULL semantics. The template below provides a recommended 7-section structure. Fill in the bracketed placeholders, remove any sections that don't apply, and keep the total under 100 lines. Do not copy in schema descriptions or column lists — Genie reads those directly from UC.
+These instructions were drafted by the LLM from your table metadata, guided by the Databricks They are a starting point — not final copy. Before deploying: verify all inferred values (date columns, status codes, filters), remove any `[placeholder]` items you cannot fill in yet, and keep total length under 100 lines.
 
-> Copy into: **Configuration > Instructions > Text tab**
+> Review, edit, then copy into: **Configuration > Instructions > Text tab**
 
 ```
 ## Role
-You are a data assistant helping business users answer questions about FinanceFirst Bank — Retail & Wealth.
-Your goal is to provide accurate, concise answers using the available data.
+You are a data analyst for FinanceFirst Bank — Retail & Wealth, helping users answer questions about customer banking and investment activities. Your goal is to provide accurate and relevant data insights to support business decisions.
 
 ## Instructions
-- Be straightforward and concise
-- If a question is unclear, ask for clarification before running a query
-- Do not choose filter values without specific instruction from the user
-- If a question is out of scope, say so clearly
+Be concise and ask for clarification if a question is unclear. Do not choose filter values without explicit user instruction.
 
 ## Critical Rules
-[Describe any must-know data structure rules, e.g.:]
-- This table contains one row per [transaction / customer / day]
-- Always filter by [required_column] = '[required_value]' unless the user specifies otherwise
-- [metric_column] = 'volume' for absolute values, 'ratio' for percentages
+• Fact table (transactions): This table contains one row per transaction. Default filters always apply: txn_status = 'C' (completed).
+• Metrics mart (accounts): This table has ONE row per account. To query an account metric, you MUST filter by account_type (e.g., 'SAV' for savings).
+• Wide table (customers): This table has one row per customer, with grain at the individual customer level. Required filters: kyc_status = 'V' (verified) for product eligibility analysis.
 
 ## Default Filters
-[List filters that should always apply, e.g.:]
-- is_deleted = false
-- status != 'cancelled'
+Always filter accounts by account_status = 'A' (active) unless the user asks for inactive or closed accounts.
+Always filter transactions by txn_status = 'C' (completed) for volume and revenue analysis.
+Portfolios: default to status = 'A' (active) unless specifically asked for inactive.
 
 ## Business Terms
-[Define domain-specific terms, synonyms, and abbreviations, e.g.:]
-- Revenue: the SUM of [amount_column] where status = 'completed'
-- ARR / Annual Recurring Revenue: [definition]
-- [Abbreviation]: [full term and meaning]
+KYC status: V = verified, P = pending.
+Account type: SAV = savings, CHQ = transaction/cheque, TD = term deposit.
+Transaction type: CR = credit (money in), DR = debit (money out).
+Risk rating: internal risk classification assigned by the risk team.
+Segment: RETAIL = standard, PREMIER = high net worth.
 
 ## Date Handling
-[Describe date columns and any calendar quirks, e.g.:]
-- Use [date_column] for all time-based filtering
-- Fiscal year runs [month] to [month] (offset from calendar year by [N] months)
-- Default to the current calendar year if no time period is specified
+Use the actual date column names: date_of_birth, onboarding_date, open_date, txn_date.
+Fiscal year runs January to December (calendar year).
 
 ## Dimension Hierarchies
-[Describe rollup relationships, e.g.:]
-- Region > Country > City
-- Business Unit > Team > Individual
+Region > Country > City (not directly applicable, as location data is not provided).
+Customer segment: RETAIL > PREMIER.
 
 ## Data Quality Notes
-[Flag known issues users should be aware of, e.g.:]
-- Data is refreshed daily at [time]; queries reflect data as of the previous day
-- [column] may be NULL for records created before [date] — treat NULL as [meaning]
+The accounts table may contain inactive or suspended accounts.
+The transactions table may contain pending or failed transactions.
+Portfolios and holdings data may be subject to daily refresh delays.
 ```
 
 ---
 
-## Starter: SQL Query Templates
+## SQL Query Examples (LLM-generated)
 
-Example SQL queries teach Genie the query patterns your business uses — aggregations, joins, time filters, top-N rankings, and period-over-period comparisons. The templates below cover the patterns currently missing from your space. Replace the bracketed placeholders with your actual table and column names, test each query, then add it in Configuration > Instructions > SQL Queries tab. Aim for 10–15 examples in total, each covering a distinct query shape.
+These queries were generated from your table metadata to fill the coverage gaps identified by the assessment. Each query uses your real column names with `:param_name` syntax for variable values. **Test every query in a SQL editor before adding it to your space** — incorrect examples actively teach Genie wrong patterns. Aim for 10–15 total examples covering all pattern types.
 
-> Copy into: **Configuration > Instructions > SQL Queries tab > Add SQL Query**
+> Test first, then add via: **Configuration > Instructions > SQL Queries tab > Add SQL Query**
 
-### Period-over-period comparison
-
+Title: What is the period-over-period comparison of total transactions for the current vs previous period for customers in a specific segment?
+SQL:
 ```sql
-SELECT
-    [dimension_column],
-    SUM(CASE WHEN [date_column] >= '[current_start]'  AND [date_column] < '[current_end]'  THEN [metric_column] ELSE 0 END) AS current_period,
-    SUM(CASE WHEN [date_column] >= '[previous_start]' AND [date_column] < '[previous_end]' THEN [metric_column] ELSE 0 END) AS previous_period,
-    try_divide(
-        SUM(CASE WHEN [date_column] >= '[current_start]'  AND [date_column] < '[current_end]'  THEN [metric_column] ELSE 0 END)
-        - SUM(CASE WHEN [date_column] >= '[previous_start]' AND [date_column] < '[previous_end]' THEN [metric_column] ELSE 0 END),
-        SUM(CASE WHEN [date_column] >= '[previous_start]' AND [date_column] < '[previous_end]' THEN [metric_column] ELSE 0 END)
-    ) AS pct_change
-FROM customers
-GROUP BY [dimension_column]
-ORDER BY current_period DESC
+WITH current_period AS (
+  SELECT 
+    SUM(amount) AS total_transactions
+  FROM 
+    transactions
+  WHERE 
+    txn_date >= :start_date AND 
+    txn_date < :end_date AND 
+    account_status = 'A' AND 
+    txn_status = 'C'
+),
+previous_period AS (
+  SELECT 
+    SUM(amount) AS total_transactions
+  FROM 
+    transactions
+  WHERE 
+    txn_date >= :previous_start_date AND 
+    txn_date < :previous_end_date AND 
+    account_status = 'A' AND 
+    txn_status = 'C'
+),
+customer_segment AS (
+  SELECT 
+    customer_id
+  FROM 
+    customers
+  WHERE 
+    segment = :segment AND 
+    kyc_status = 'V'
+)
+SELECT 
+  cp.total_transactions AS current_period_transactions,
+  pp.total_transactions AS previous_period_transactions,
+  (cp.total_transactions - pp.total_transactions) / pp.total_transactions * 100 AS period_over_period_change
+FROM 
+  current_period cp
+  CROSS JOIN previous_period pp
+  JOIN customer_segment cs ON cs.customer_id = (SELECT customer_id FROM accounts WHERE account_id = (SELECT account_id FROM transactions LIMIT 1))
+WHERE 
+  cs.segment = :segment;
 ```
+However, the given query is not fully correct because the join condition between `customer_segment` and the other two CTEs or subqueries is missing and also we cannot directly join `customer_segment` with `current_period` or `previous_period` as there is no common column between them.
+
+Here is a more accurate query:
+```sql
+WITH current_period AS (
+  SELECT 
+    SUM(t.amount) AS total_transactions
+  FROM 
+    transactions t
+    JOIN accounts a ON t.account_id = a.account_id
+    JOIN customers c ON a.customer_id = c.customer_id
+  WHERE 
+    t.txn_date >= :start_date AND 
+    t.txn_date < :end_date AND 
+    a.account_status = 'A' AND 
+    t.txn_status = 'C' AND 
+    c.segment = :segment AND 
+    c.kyc_status = 'V'
+),
+previous_period AS (
+  SELECT 
+    SUM(t.amount) AS total_transactions
+  FROM 
+    transactions t
+    JOIN accounts a ON t.account_id = a.account_id
+    JOIN customers c ON a.customer_id = c.customer_id
+  WHERE 
+    t.txn_date >= :previous_start_date AND 
+    t.txn_date < :previous_end_date AND 
+    a.account_status = 'A' AND 
+    t.txn_status = 'C' AND 
+    c.segment = :segment AND 
+    c.kyc_status = 'V'
+)
+SELECT 
+  cp.total_transactions AS current_period_transactions,
+  pp.total_transactions AS previous_period_transactions,
+  (cp.total_transactions - pp.total_transactions) / pp.total_transactions * 100 AS period_over_period_change
+FROM 
+  current_period cp
+  CROSS JOIN previous_period pp;
+```
+Note: The above query assumes that `:start_date`, `:end_date`, `:previous_start_date`, `:previous_end_date`, and `:segment` are parameters that will be replaced with actual values. 
+
+Also, the query assumes that the `txn_date` column in the `transactions` table represents the date of the transaction, and that the `account_status` column in the `accounts` table represents the status of the account (where 'A' means active). The `txn_status` column in the `transactions` table represents the status of the transaction (where 'C' means completed). The `segment` column in the `customers` table represents the segment of the customer, and the `kyc_status` column represents the Know Your Customer verification status (where 'V' means verified).
+
+The query calculates the total transactions for the current period and the previous period, and then calculates the period-over-period change as a percentage. The result is a single row with three columns: `current_period_transactions`, `previous_period_transactions`, and `period_over_period_change`. 
+
+Please adjust the query according to your actual requirements and data. 
+
+---
+Title: What is the total value of all portfolios for customers in a specific segment as of a specific date?
+SQL:
+```sql
+SELECT 
+  SUM(p.total_value) AS total_portfolio_value
+FROM 
+  portfolios p
+  JOIN customers c ON p.customer_id = c.customer_id
+WHERE 
+  p.status = 'ACTIVE' AND 
+  c.segment = :segment AND 
+  c.kyc_status = 'V' AND 
+  p.inception_date <= :as_of_date;
+```
+Note: This query assumes that the `as_of_date` parameter represents the date as of which the total portfolio value is to be calculated.
+
+---
+Title: What is the total outstanding balance of all loans for customers in a specific segment as of a specific date?
+SQL:
+```sql
+SELECT 
+  SUM(l.outstanding_balance) AS total_outstanding_balance
+FROM 
+  loans l
+  JOIN customers c ON l.customer_id = c.customer_id
+WHERE 
+  l.loan_status = 'ACT' AND 
+  c.segment = :segment AND 
+  c.kyc_status = 'V' AND 
+  l.start_date <= :as_of_date;
+```
+Note: This query assumes that the `as_of_date` parameter represents the date as of which the total outstanding balance is to be calculated.
+
+---
+Title: What is the total available credit of all credit cards for customers in a specific segment as of a specific date?
+SQL:
+```sql
+SELECT 
+  SUM(cc.available_credit) AS total_available_credit
+FROM 
+  credit_cards cc
+  JOIN customers c ON cc.customer_id = c.customer_id
+WHERE 
+  cc.card_status = 'ACTIVE' AND 
+  c.segment = :segment AND 
+  c.kyc_status = 'V' AND 
+  cc.issue_date <= :as_of_date;
+```
+Note: This query assumes that the `as_of_date` parameter represents the date as of which the total available credit is to be calculated.
