@@ -297,3 +297,104 @@ Write a complete instructions block using the 8-section template above. Requirem
     print("   • Verify all inferred values (dates, filters, business terms) against your actual data")
     print("   • Remove any [placeholder] items you cannot fill in yet")
     print("   • Copy into: Configuration > Instructions > Text tab")
+
+# ── SQL Query Generator (LLM-drafted, coverage-matrix-guided) ─────────────────
+sql_output = ""
+if a3 < 3:
+    # Build list of patterns to generate — target gaps only when examples exist,
+    # generate the full coverage matrix when starting from scratch
+    if sql_count == 0:
+        patterns_needed = [
+            "aggregation (SUM/COUNT + GROUP BY)",
+            "date/time filtering with :param_name syntax for date values",
+            "top-N ranking (ORDER BY ... LIMIT)",
+            "period-over-period comparison (current vs previous period)",
+            "multi-table JOIN" if table_count > 1 else "filtered query with WHERE clause",
+        ]
+    else:
+        patterns_needed = []
+        if not has_agg_example:     patterns_needed.append("aggregation (SUM/COUNT + GROUP BY)")
+        if not has_date_example:    patterns_needed.append("date/time filtering with :param_name syntax for date values")
+        if not has_topn_example:    patterns_needed.append("top-N ranking (ORDER BY ... LIMIT)")
+        if not has_compare_example: patterns_needed.append("period-over-period comparison (current vs previous period)")
+        if not has_join_example and table_count > 1:
+            patterns_needed.append("multi-table JOIN")
+        if not parameterised_sqls:  patterns_needed.append("parameterised query using :param_name syntax")
+
+    if patterns_needed:
+        # Distilled from Databricks Genie Space Playbook Step 3.2
+        SQL_BEST_PRACTICES = """\
+BEST PRACTICES (Databricks Genie Space Playbook — Step 3.2):
+- Every query must be complete and self-contained — no fragments
+- Use :param_name syntax for variable values (dates, filter values, IDs)
+  e.g.  WHERE order_date >= :start_date AND order_date < :end_date
+        AND region = :region
+- Include ALL required default filters on every query
+- Title should be the natural-language question a business user would type
+- Do NOT hardcode specific date literals or filter values
+- Use actual table and column names from the metadata provided
+"""
+
+        tables_sql = "\n".join(
+            f"  {tid.split('.')[-1]} ({', '.join(c['name'] for c in meta.get('columns', [])[:20])})"
+            for tid, meta in table_metadata.items()
+            if "error" not in meta
+        )
+
+        joins_hint = ""
+        if genie_joins:
+            join_lines = []
+            for j in genie_joins[:5]:
+                left  = j.get("left_table",  {})
+                right = j.get("right_table", {})
+                lt = left.get("table_name",  left.get("name",  "?")).split(".")[-1]
+                rt = right.get("table_name", right.get("name", "?")).split(".")[-1]
+                lc = left.get("column_name",  left.get("join_column",  "?"))
+                rc = right.get("column_name", right.get("join_column", "?"))
+                join_lines.append(f"  {lt}.{lc} = {rt}.{rc}")
+            joins_hint = "\nCONFIGURED JOINS (use these for multi-table queries):\n" + "\n".join(join_lines) + "\n"
+
+        patterns_str = "\n".join(f"  {i+1}. {p}" for i, p in enumerate(patterns_needed))
+
+        sql_prompt = f"""You are a Databricks SQL expert. Generate example SQL queries for a Genie space called "{space_name_str}".
+
+{SQL_BEST_PRACTICES}
+TABLE METADATA (use these exact table and column names):
+{tables_sql}{joins_hint}
+FULL TABLE METADATA (for column descriptions and types):
+{metadata_block}
+
+TASK:
+Generate one complete SQL query for each of the following missing patterns:
+{patterns_str}
+
+For each query output exactly this format:
+Title: <natural-language question the query answers>
+SQL:
+<complete SQL query>
+---
+
+Requirements:
+1. Use real table and column names from the metadata above — no placeholders like [column_name]
+2. Use :param_name syntax for ALL variable values (dates, filter values)
+3. Include any default filters that are evident from the metadata (e.g. is_deleted, status columns)
+4. For date columns, infer the correct column name from metadata
+5. Each query must be complete and runnable after substituting :param values
+6. If you cannot determine a required column name, use a comment: /* TODO: replace with actual column */"""
+
+        print(DIVIDER)
+        print("SQL QUERY EXAMPLES  (LLM-generated · coverage-matrix-guided)")
+        print(f"Model: {LLM_MODEL}  |  Gaps to fill: {len(patterns_needed)} pattern(s)")
+        print(f"Patterns: {', '.join(patterns_needed)}")
+        print(DIVIDER)
+        sql_output = llm_query(sql_prompt, max_tokens=2500)
+        if sql_output.startswith("[LLM unavailable"):
+            print(f"⚠ LLM unavailable — SQL generation skipped. {sql_output}")
+            sql_output = ""
+        else:
+            print(sql_output)
+        print(DIVIDER)
+        print("\n💡 Before adding these to your space:")
+        print("   • Test every query in a SQL editor — wrong examples teach Genie bad patterns")
+        print("   • Replace any /* TODO */ comments with actual column names")
+        print("   • Add via: Configuration > Instructions > SQL Queries tab > Add SQL Query")

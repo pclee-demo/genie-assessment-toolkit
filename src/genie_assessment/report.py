@@ -286,8 +286,25 @@ if _instr_content:
         "",
     ]
 
-# SQL templates section (if generated)
-if sql_templates:
+# SQL section — prefer LLM-generated queries, fall back to static placeholder templates
+if sql_output:
+    md_lines += [
+        "---",
+        "",
+        "## SQL Query Examples (LLM-generated · coverage-matrix-guided)",
+        "",
+        ("These queries were generated from your table metadata to fill the coverage gaps identified "
+         "by the assessment. Each query uses your real column names with `:param_name` syntax for "
+         "variable values. **Test every query in a SQL editor before adding it to your space** — "
+         "incorrect examples actively teach Genie wrong patterns. "
+         "Aim for 10–15 total examples covering all pattern types."),
+        "",
+        "> Test first, then add via: **Configuration > Instructions > SQL Queries tab > Add SQL Query**",
+        "",
+        sql_output,
+        "",
+    ]
+elif sql_templates:
     md_lines += [
         "---",
         "",
