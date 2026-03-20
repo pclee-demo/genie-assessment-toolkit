@@ -1,5 +1,5 @@
 # Databricks notebook source
-# ── llm.py: Domain curation + sample question generation (LLM-assisted) ─────
+# ── llm.py: Domain curation + sample question generation (LLM-generated) ─────
 # Requires: all variables from fetch.py + score.py + recommend.py
 # Produces: domain_output (str), question_output (str), lineage_block (str)
 
@@ -136,7 +136,7 @@ Please:
 Be concise and practical. Use plain business language, not SQL or technical jargon."""
 
     print(DIVIDER)
-    print("DOMAIN CURATION RECOMMENDATIONS (LLM-assisted)")
+    print("DOMAIN CURATION RECOMMENDATIONS (LLM-generated)")
     print(f"Model: {LLM_MODEL}" +
           (" + UC lineage" if USE_SYSTEM_TABLES and lineage_block else " — metadata only"))
     print(DIVIDER)
@@ -191,7 +191,7 @@ if bm_count < 15:
 if not measures_ex:
     print(f"   • SQL Expression Measures (0 configured) — Configuration > SQL Expressions — use the KPIs above as a starting point")
 
-# ── Instructions Generator (LLM-drafted, best-practice-guided) ───────────────
+# ── Instructions Generator (LLM-generated) ───────────────
 instructions_output = ""
 if a4 < 3 or not text_instructions:
     # Extract existing text instructions content for context (rewrite mode)
@@ -204,9 +204,9 @@ if a4 < 3 or not text_instructions:
                 parts.append(content)
         existing_instr_text = "\n\n---\n\n".join(parts)
 
-    # Key guidance distilled from Databricks Genie Space Playbook (Step 3.1)
+    # Key guidance on Genie instruction best practices
     INSTR_BEST_PRACTICES = """\
-BEST PRACTICES (Databricks Genie Space Playbook — Step 3.1):
+BEST PRACTICES FOR GENIE INSTRUCTIONS:
 Target length: 50–100 lines. Use this 8-section structure:
 
 ## Role  (5–10 lines)
@@ -283,7 +283,7 @@ Write a complete instructions block using the 8-section template above. Requirem
         if existing_instr_text else "generate from scratch (no existing instructions)"
     )
     print(DIVIDER)
-    print("INSTRUCTIONS DRAFT  (LLM-generated · best-practice-guided)")
+    print("INSTRUCTIONS DRAFT  (LLM-generated)")
     print(f"Model: {LLM_MODEL}  |  Mode: {mode_str}")
     print(DIVIDER)
     instructions_output = llm_query(instructions_prompt, max_tokens=2000)
@@ -298,7 +298,7 @@ Write a complete instructions block using the 8-section template above. Requirem
     print("   • Remove any [placeholder] items you cannot fill in yet")
     print("   • Copy into: Configuration > Instructions > Text tab")
 
-# ── SQL Query Generator (LLM-drafted, coverage-matrix-guided) ─────────────────
+# ── SQL Query Generator (LLM-generated) ─────────────────
 sql_output = ""
 if a3 < 3:
     # Build list of patterns to generate — target gaps only when examples exist,
@@ -322,9 +322,9 @@ if a3 < 3:
         if not parameterised_sqls:  patterns_needed.append("parameterised query using :param_name syntax")
 
     if patterns_needed:
-        # Distilled from Databricks Genie Space Playbook Step 3.2
+        # Key guidance on Genie SQL example best practices
         SQL_BEST_PRACTICES = """\
-BEST PRACTICES (Databricks Genie Space Playbook — Step 3.2):
+BEST PRACTICES FOR GENIE SQL EXAMPLES:
 - Every query must be complete and self-contained — no fragments
 - Use :param_name syntax for variable values (dates, filter values, IDs)
   e.g.  WHERE order_date >= :start_date AND order_date < :end_date
@@ -383,7 +383,7 @@ Requirements:
 6. If you cannot determine a required column name, use a comment: /* TODO: replace with actual column */"""
 
         print(DIVIDER)
-        print("SQL QUERY EXAMPLES  (LLM-generated · coverage-matrix-guided)")
+        print("SQL QUERY EXAMPLES  (LLM-generated)")
         print(f"Model: {LLM_MODEL}  |  Gaps to fill: {len(patterns_needed)} pattern(s)")
         print(f"Patterns: {', '.join(patterns_needed)}")
         print(DIVIDER)

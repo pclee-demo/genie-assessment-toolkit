@@ -218,7 +218,7 @@ if domain_output:
     md_lines += [
         "---",
         "",
-        "## Domain Curation Guide (LLM-assisted)",
+        "## Domain Curation Guide (LLM-generated)",
         "",
         ("This space contains too many tables across multiple business domains, which degrades Genie's "
          "accuracy. The guide below — generated from your table metadata — identifies distinct domains, "
@@ -253,10 +253,10 @@ if question_output:
 _instr_content = instructions_output or instructions_template
 if _instr_content:
     if instructions_output:
-        _instr_title = "Instructions Draft (LLM-generated · best-practice-guided)"
+        _instr_title = "Instructions Draft (LLM-generated)"
         _instr_desc  = (
             "These instructions were drafted by the LLM from your table metadata, guided by the Databricks "
-            "Genie Space Playbook (Step 3.1). They are a starting point — not final copy. "
+            "They are a starting point — not final copy. "
             "Before deploying: verify all inferred values (date columns, status codes, filters), "
             "remove any `[placeholder]` items you cannot fill in yet, and keep total length under 100 lines."
         )
@@ -291,7 +291,7 @@ if sql_output:
     md_lines += [
         "---",
         "",
-        "## SQL Query Examples (LLM-generated · coverage-matrix-guided)",
+        "## SQL Query Examples (LLM-generated)",
         "",
         ("These queries were generated from your table metadata to fill the coverage gaps identified "
          "by the assessment. Each query uses your real column names with `:param_name` syntax for "
