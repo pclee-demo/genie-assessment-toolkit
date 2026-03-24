@@ -484,8 +484,42 @@ if total_instr_lines > 100:
 elif total_instr_chars > 3000:
     a4_flags.append(f"Total instruction length is {total_instr_chars:,} chars — trim to the most impactful rules")
 
+# ── Area 3 addendum: SQL / Sample Question alignment check ───────────────────
+# (runs here so sample_questions is available; flags are appended to a3_flags)
+sq_count = len(sample_questions)   # needed early for alignment check; redefined below
+sq_text_blob = " ".join(
+    q.get("question", q.get("question_text", q.get("content", ""))).lower()
+    for q in sample_questions
+)
+alignment_gaps = []
+if sq_count >= 3:
+    SQ_TIME_PAT    = re.compile(r"\btrend|over time|monthly|quarterly|yearly|growth|change|last \d+\b", re.IGNORECASE)
+    SQ_JOIN_PAT    = re.compile(r"\bby customer|across|with their|for each\b|breakdown by\b", re.IGNORECASE)
+    SQ_TOPN_PAT    = re.compile(r"\btop \d+|bottom \d+|highest|lowest|best|worst|ranking\b", re.IGNORECASE)
+    SQ_COMPARE_PAT = re.compile(r"\bvs\.?|versus|compare|year.over.year|yoy\b|period.over.period\b", re.IGNORECASE)
+
+    if SQ_TIME_PAT.search(sq_text_blob) and not has_date_example:
+        alignment_gaps.append("sample questions ask about time trends but no time-based SQL examples exist")
+    if SQ_JOIN_PAT.search(sq_text_blob) and not has_join_example and table_count > 1:
+        alignment_gaps.append("sample questions imply multi-table queries but no JOIN SQL examples exist")
+    if SQ_TOPN_PAT.search(sq_text_blob) and not has_topn_example:
+        alignment_gaps.append("sample questions ask for rankings/top-N but no ORDER BY...LIMIT SQL examples exist")
+    if SQ_COMPARE_PAT.search(sq_text_blob) and not has_compare_example:
+        alignment_gaps.append("sample questions ask for comparisons but no period-over-period SQL examples exist")
+
+if alignment_gaps:
+    a3_flags.append(
+        "SQL examples are misaligned with sample questions — "
+        + "; ".join(alignment_gaps)
+        + ". Genie learns patterns from SQL examples; if questions and examples don't match, "
+        "users will get poor results on the questions you've featured"
+    )
+    if a3 == 3:
+        a3, a3l = 2, "OK"
+
 # ── Area 5: Sample Questions ──────────────────────────────────────────────────
 sq_count = len(sample_questions)
+ta_count = len(trusted_answers)
 
 if sq_count >= 10:   a5, a5l = 3, "Good"
 elif sq_count >= 5:  a5, a5l = 2, "OK"
@@ -502,6 +536,48 @@ if sq_count > 0:
         "and user personas — 10 questions all asking about the same metric provide less value than "
         "10 questions spread across different business areas and question types"
     )
+
+# Trusted Answers check
+if ta_count == 0 and sq_count >= 5:
+    a5_flags.append(
+        "No Trusted Answers configured — for critical or frequently-asked questions "
+        "that must always return a specific result, add Trusted Answers via "
+        "Configuration > Trusted Answers; these take priority over Genie's LLM response"
+    )
+elif ta_count > 0:
+    a5_flags.append(
+        f"Trusted Answers: {ta_count} configured — good practice for pinning responses "
+        "to critical business questions"
+    )
+
+# Table coverage check — flag tables not referenced by any sample question
+uncovered_tables = []
+if sq_count >= 3 and table_count >= 2:
+    for table_id in table_identifiers:
+        tname = table_id.split(".")[-1].lower()
+        col_tokens = set()
+        for col in table_metadata.get(table_id, {}).get("columns", [])[:15]:
+            parts = col.get("name", "").lower().split("_")
+            col_tokens.update(p for p in parts if len(p) > 3)
+        covered = any(
+            tname in q.get("question", q.get("question_text", q.get("content", ""))).lower()
+            or any(
+                tok in q.get("question", q.get("question_text", q.get("content", ""))).lower()
+                for tok in col_tokens
+            )
+            for q in sample_questions
+        )
+        if not covered:
+            uncovered_tables.append(tname)
+
+    if uncovered_tables:
+        a5_flags.append(
+            f"Tables with no sample question coverage ({len(uncovered_tables)}): "
+            f"{', '.join(uncovered_tables)} — users will never discover what these tables can answer; "
+            "add at least one sample question per table that showcases its key metrics or use case"
+        )
+        if len(uncovered_tables) >= max(2, table_count // 2) and a5 == 3:
+            a5, a5l = 2, "OK"
 
 # ── Area 6: Benchmarks ───────────────────────────────────────────────────────
 bm_count      = len(benchmarks)
@@ -626,6 +702,54 @@ else:
                 a7_flags.append("No Synonyms defined — add abbreviations and alternate names to reduce clarification prompts")
             if expr_count < 3:
                 a7_flags.append(f"Only {expr_count} SQL Expression(s) — add more Measures, Dimensions, Filters, and Synonyms")
+
+# ── Business abbreviation audit (Area 7 addendum) ────────────────────────────
+# Checks whether business abbreviations found in column names have synonym/instruction mappings
+KNOWN_BUSINESS_ABBREVS = {
+    "rm": "Relationship Manager", "kpi": "Key Performance Indicator",
+    "aum": "Assets Under Management", "nps": "Net Promoter Score",
+    "arr": "Annual Recurring Revenue", "mrr": "Monthly Recurring Revenue",
+    "ltv": "Lifetime Value", "cac": "Customer Acquisition Cost",
+    "ytd": "Year-to-Date", "mtd": "Month-to-Date", "qtd": "Quarter-to-Date",
+    "yoy": "Year-over-Year", "mom": "Month-over-Month", "qoq": "Quarter-over-Quarter",
+    "ebitda": "EBITDA", "roe": "Return on Equity", "roa": "Return on Assets",
+    "nim": "Net Interest Margin", "fum": "Funds Under Management",
+    "nav": "Net Asset Value", "glp": "Gross Loan Portfolio", "npl": "Non-Performing Loan",
+    "nrr": "Net Revenue Retention", "arr": "Annual Recurring Revenue",
+}
+
+ABBREV_TOKEN_PAT = re.compile(r'\b([a-z]{2,6})\b')
+found_abbrevs = set()
+for table_id, meta in table_metadata.items():
+    if "error" in meta:
+        continue
+    for col in meta.get("columns", []):
+        col_lower = col.get("name", "").lower().replace("_", " ")
+        for token in ABBREV_TOKEN_PAT.findall(col_lower):
+            if token in KNOWN_BUSINESS_ABBREVS:
+                found_abbrevs.add(token)
+
+instr_text_blob = " ".join(i.get("content", "") for i in text_instructions).lower()
+synonym_blob    = " ".join(synonyms_ex).lower()
+
+unmapped_abbrevs = []
+for abbrev in sorted(found_abbrevs):
+    full_term_lower = KNOWN_BUSINESS_ABBREVS[abbrev].lower().split("/")[0].strip()
+    in_synonyms = abbrev in synonym_blob or full_term_lower in synonym_blob
+    in_instrs   = abbrev in instr_text_blob or full_term_lower in instr_text_blob
+    if not in_synonyms and not in_instrs:
+        unmapped_abbrevs.append(abbrev.upper())
+
+if unmapped_abbrevs:
+    a7_flags.append(
+        f"Business abbreviations in column names with no synonym or instruction mapping "
+        f"({len(unmapped_abbrevs)}): {', '.join(unmapped_abbrevs)} — "
+        "add a SQL Expression Synonym for each (Configuration > SQL Expressions > Synonym) "
+        "so Genie resolves queries using full terms (e.g. 'Relationship Manager' → rm_id), "
+        "or define them in Instructions > Business Terms"
+    )
+    if a7 == 3 and len(unmapped_abbrevs) >= 2:
+        a7, a7l = 2, "OK"
 
 # ── Verdict ───────────────────────────────────────────────────────────────────
 scores  = [a0, a1, a2, a3, a4, a5, a6, a7]

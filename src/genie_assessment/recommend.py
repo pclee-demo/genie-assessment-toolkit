@@ -130,6 +130,8 @@ elif a3 == 2:
         *(["SQL examples reference tables not in this space: " + "; ".join(sql_unknown_tables[:3])
            + " — update these to reference the tables actually in this space, "
            "otherwise Genie learns patterns against tables it cannot query"] if sql_unknown_tables else []),
+        *(["SQL/question alignment gaps: " + "; ".join(alignment_gaps)
+           + " — prioritise adding SQL examples that match your featured sample questions"] if alignment_gaps else []),
         "Include complete queries with all required default filters — not fragments",
     ]))
 
@@ -160,6 +162,9 @@ if a5 == 1:
         "Use the Sample Question & KPI Generator below to create 10+ questions immediately — no business user input required",
         "Even 5 good questions dramatically improves first-time user experience and reduces 'I don't know what to ask' drop-off",
         "Cover at least one question per major business metric and one per target user persona",
+        *(["No Trusted Answers configured — once you have sample questions, add Trusted Answers for your most critical "
+           "business questions (e.g. company-level revenue, headcount) via Configuration > Trusted Answers; "
+           "these guarantee a consistent, verified answer regardless of how the question is phrased"] if ta_count == 0 else []),
     ]))
 elif a5 == 2:
     recs.append(("Sample Questions", SEVERITY[2], [
@@ -167,6 +172,11 @@ elif a5 == 2:
         "Diversify across user personas (manager, analyst, ops, compliance) — don't cluster around one question type",
         "Include at least one question per major business metric or KPI",
         "Phrase as natural-language questions business users would actually type, not SQL-like queries",
+        *(["Tables with no question coverage: " + ", ".join(uncovered_tables)
+           + " — add sample questions that feature these tables so users discover what they can answer; "
+           "if no good questions exist, consider whether these tables belong in this space"] if uncovered_tables else []),
+        *(["No Trusted Answers configured — add 3–5 via Configuration > Trusted Answers for your most critical "
+           "business questions to guarantee consistent, verified answers"] if ta_count == 0 else []),
     ]))
 
 # ── Area 6: Benchmarks ────────────────────────────────────────────────────────
@@ -212,6 +222,9 @@ if a7 < 3:
             f"Partial semantic layer — {expr_count} SQL Expression(s) defined but gaps remain (see flags above)",
             *(["Add Measure expressions for key KPIs — currently none defined"] if not measures_ex else []),
             *(["Add Synonyms for common abbreviations to reduce clarification prompts"] if not synonyms_ex else []),
+            *(["Business abbreviations in column names with no synonym mapping: " + ", ".join(unmapped_abbrevs)
+               + " — add a Synonym SQL Expression for each so Genie resolves user queries using full terms "
+               "(Configuration > SQL Expressions > Synonym)"] if unmapped_abbrevs else []),
             "Aim for at least 5 expressions covering your most-used business terms before launch",
         ]))
 

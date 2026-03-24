@@ -106,8 +106,17 @@ for table_id in table_identifiers:
         pass
 
 # Genie join definitions
-joins_resp  = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/joins")
-genie_joins = joins_resp.get("joins", []) if "error" not in joins_resp else []
+joins_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/joins")
+if "error" not in joins_resp:
+    genie_joins = (
+        joins_resp.get("joins")
+        or joins_resp.get("genie_joins")
+        or joins_resp.get("table_joins")
+        or []
+    )
+else:
+    # Fallback: some API versions embed joins in the main space config
+    genie_joins = space.get("joins", space.get("genie_joins", []))
 
 # Warehouse type (serverless vs. classic)
 warehouse_id   = space.get("warehouse_id", "")
@@ -134,9 +143,22 @@ for table_id in table_identifiers:
     except Exception:
         table_grants[table_id] = None  # None = insufficient privilege to check
 
-print(f"✓ Space:        {space.get('display_name', space.get('title', ''))}")
-print(f"  Tables:       {len(table_identifiers)}")
-print(f"  Instructions: {len(text_instructions)} text, {len(sql_instructions)} SQL examples")
-print(f"  Questions:    {len(sample_questions)} sample, {len(benchmarks)} benchmarks")
-print(f"  Joins:        {len(genie_joins)}  |  PK/FK tables: {len(pk_fk_tables)}/{len(table_identifiers)}")
-print(f"  Space ACL:    {len(space_acl)} entries  |  Warehouse ACL: {len(warehouse_acl)} entries")
+# Trusted Answers
+trusted_answers_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/trusted-answers")
+if "error" in trusted_answers_resp:
+    trusted_answers_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/trusted_answers")
+trusted_answers = (
+    trusted_answers_resp.get("trusted_answers")
+    or trusted_answers_resp.get("answers")
+    or []
+) if "error" not in trusted_answers_resp else []
+
+print(f"✓ Space:         {space.get('display_name', space.get('title', ''))}")
+print(f"  Tables:        {len(table_identifiers)}")
+print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} SQL examples")
+print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks")
+print(f"  Trusted Ans:   {len(trusted_answers)}")
+print(f"  Joins:         {len(genie_joins)}  |  PK/FK tables: {len(pk_fk_tables)}/{len(table_identifiers)}")
+if not genie_joins and "error" not in joins_resp:
+    print(f"  (joins API response keys: {list(joins_resp.keys())} — if joins exist, check key name)")
+print(f"  Space ACL:     {len(space_acl)} entries  |  Warehouse ACL: {len(warehouse_acl)} entries")

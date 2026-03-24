@@ -368,7 +368,7 @@ TASK:
 Generate one complete SQL query for each of the following missing patterns:
 {patterns_str}
 
-For each query output exactly this format:
+For each query output EXACTLY this format and nothing else — no commentary, no notes, no explanations before or after:
 Title: <natural-language question the query answers>
 SQL:
 <complete SQL query>
@@ -380,7 +380,10 @@ Requirements:
 3. Include any default filters that are evident from the metadata (e.g. is_deleted, status columns)
 4. For date columns, infer the correct column name from metadata
 5. Each query must be complete and runnable after substituting :param values
-6. If you cannot determine a required column name, use a comment: /* TODO: replace with actual column */"""
+6. If you cannot determine a required column name, use a comment: /* TODO: replace with actual column */
+7. Output ONLY the Title/SQL blocks — no self-corrections, no explanations, no alternative versions.
+   If a join condition is uncertain, write your best attempt with an inline /* verify join */ comment.
+8. Do not output two versions of the same query. One correct query per pattern."""
 
         print(DIVIDER)
         print("SQL QUERY EXAMPLES  (LLM-generated)")
