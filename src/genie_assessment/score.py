@@ -519,7 +519,7 @@ if alignment_gaps:
 
 # ── Area 5: Sample Questions ──────────────────────────────────────────────────
 sq_count = len(sample_questions)
-ta_count = len(trusted_answers)
+ta_count = len(trusted_answers) if "trusted_answers" in dir() else 0
 
 if sq_count >= 10:   a5, a5l = 3, "Good"
 elif sq_count >= 5:  a5, a5l = 2, "OK"
