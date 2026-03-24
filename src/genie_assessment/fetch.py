@@ -112,9 +112,28 @@ if "error" not in joins_resp:
         joins_resp.get("joins")
         or joins_resp.get("genie_joins")
         or joins_resp.get("table_joins")
+        or joins_resp.get("join_definitions")
+        or joins_resp.get("relationships")
         or []
     )
+    # If still empty, the API responded but under an unexpected key — print raw for diagnosis
+    if not genie_joins:
+        print(f"  ⚠ Joins API returned 200 but genie_joins is empty.")
+        print(f"    Response keys: {list(joins_resp.keys())}")
+        import json as _json
+        print(f"    Raw response (first 500 chars): {_json.dumps(joins_resp)[:500]}")
+        # Last-resort: if the response itself is a list
+        if isinstance(joins_resp, list):
+            genie_joins = joins_resp
+        # Last-resort: check if joins are embedded in the space config
+        elif not genie_joins:
+            for key in ("joins", "genie_joins", "table_joins", "join_definitions", "relationships"):
+                if space.get(key):
+                    genie_joins = space[key]
+                    print(f"    Found joins in space config under key: '{key}'")
+                    break
 else:
+    print(f"  ⚠ Joins API error: {joins_resp.get('error', joins_resp)}")
     # Fallback: some API versions embed joins in the main space config
     genie_joins = space.get("joins", space.get("genie_joins", []))
 
