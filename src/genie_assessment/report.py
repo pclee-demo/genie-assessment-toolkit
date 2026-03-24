@@ -255,7 +255,7 @@ if _instr_content:
     if instructions_output:
         _instr_title = "Instructions Draft (LLM-generated)"
         _instr_desc  = (
-            "These instructions were drafted by the LLM from your table metadata, guided by the Databricks "
+            "These instructions were drafted by the LLM from your table metadata using Databricks best practices. "
             "They are a starting point — not final copy. "
             "Before deploying: verify all inferred values (date columns, status codes, filters), "
             "remove any `[placeholder]` items you cannot fill in yet, and keep total length under 100 lines."

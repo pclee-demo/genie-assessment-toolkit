@@ -169,7 +169,8 @@ Please generate:
    - Provide a plain-English formula hint that could be turned into a SQL aggregate expression (e.g. "COUNT of distinct customers with at least one transaction in the last 30 days")
    - These will be used as SQL Expression Measures in Databricks Genie (Configuration > SQL Expressions)
 
-Use plain business language. Do not write SQL. Do not reference column names directly — use business-friendly terms."""
+Use plain business language. Do not write SQL. Do not reference column names directly — use business-friendly terms.
+Do not include any offers, follow-up suggestions, or questions at the end of your response."""
 
 print(DIVIDER)
 print("SAMPLE QUESTIONS & KPIs  (LLM-generated from metadata)")

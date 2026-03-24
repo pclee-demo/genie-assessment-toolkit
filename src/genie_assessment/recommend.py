@@ -91,14 +91,25 @@ elif a1 == 2:
 # ── Area 2: Metadata Quality ──────────────────────────────────────────────────
 if a2 == 1:
     undescribed = total_cols - described_cols
-    recs.append(("Metadata Quality", SEVERITY[1], [
-        f"BLOCKING: Only {coverage_pct:.0f}% of columns are described — Genie cannot reliably interpret your data until this is above 80%",
-        f"Prioritise the {undescribed} undescribed columns, starting with those used in filters, aggregations, and joins",
-        "Use ALTER TABLE ... ALTER COLUMN ... COMMENT or the Databricks UI to add descriptions in bulk",
-        *(["No table-level comments at all — add a comment to every table describing its grain, scope, and key metrics"] if len(tables_no_comment) == table_count else []),
-        "For coded/status columns: add plain-English descriptions to the UC column comment (e.g. 'A=Active, I=Inactive') AND enable Entity Matching in Configuration > Data so Genie can resolve user-typed values to actual codes",
-        *(["Cast date/time columns stored as STRING to DATE or TIMESTAMP — Genie cannot do date arithmetic on strings"] if date_as_string else []),
-    ]))
+    items_a2 = []
+    if coverage_pct < 80:
+        items_a2.append(f"BLOCKING: Only {coverage_pct:.0f}% of columns are described — Genie cannot reliably interpret your data until this is above 80%")
+        items_a2.append(f"Prioritise the {undescribed} undescribed columns, starting with those used in filters, aggregations, and joins")
+        items_a2.append("Use ALTER TABLE ... ALTER COLUMN ... COMMENT or the Databricks UI to add descriptions in bulk")
+    else:
+        items_a2.append(
+            f"Description coverage is {coverage_pct:.0f}% but data quality issues are preventing Genie from resolving business queries correctly — "
+            "see flagged items above: coded columns and date/string type issues are the primary blockers"
+        )
+    if len(tables_no_comment) == table_count:
+        items_a2.append("No table-level comments at all — add a comment to every table describing its grain, scope, and key metrics")
+    items_a2.append(
+        "For coded/status columns: add plain-English descriptions to the UC column comment (e.g. 'A=Active, I=Inactive') "
+        "AND enable Entity Matching in Configuration > Data so Genie can resolve user-typed values to actual codes"
+    )
+    if date_as_string:
+        items_a2.append("Cast date/time columns stored as STRING to DATE or TIMESTAMP — Genie cannot do date arithmetic on strings")
+    recs.append(("Metadata Quality", SEVERITY[1], items_a2))
 elif a2 == 2:
     recs.append(("Metadata Quality", SEVERITY[2], [
         f"Description coverage is {coverage_pct:.0f}% — fill the {total_cols - described_cols} remaining gaps, focusing on columns flagged above",
@@ -123,7 +134,8 @@ if a3 == 1:
 elif a3 == 2:
     missing_str = (", ".join(missing_types) + " — use the SQL Templates below") if missing_types else "review coverage against the full query matrix"
     recs.append(("Example SQL", SEVERITY[2], [
-        f"You have {sql_count} examples — add {max(0, 10 - sql_count)} more to reach 10 (target: 10–15)",
+        f"You have {sql_count} examples — add {max(0, 10 - sql_count)} more to reach 10 (target: 10–15)" if sql_count < 10
+        else f"You have {sql_count} SQL examples (count is fine) — quality issues are pulling the score down: fix table references, add parameterisation, and address alignment gaps flagged above",
         f"Fill coverage gaps: {missing_str}",
         *(["Replace hardcoded values in: " + "; ".join(hardcoded_sqls[:3]) + " — use :param_name syntax"] if hardcoded_sqls else []),
         *(["No parameterised queries yet — add at least one :param_name or {{param}} example"] if not parameterised_sqls and sql_count > 0 else []),
