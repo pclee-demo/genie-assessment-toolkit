@@ -105,37 +105,43 @@ for table_id in table_identifiers:
     except Exception:
         pass
 
-# Genie join definitions
-joins_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/joins")
-if "error" not in joins_resp:
-    genie_joins = (
-        joins_resp.get("joins")
-        or joins_resp.get("genie_joins")
-        or joins_resp.get("table_joins")
-        or joins_resp.get("join_definitions")
-        or joins_resp.get("relationships")
-        or []
-    )
-    # If still empty, the API responded but under an unexpected key — print raw for diagnosis
-    if not genie_joins:
-        print(f"  ⚠ Joins API returned 200 but genie_joins is empty.")
-        print(f"    Response keys: {list(joins_resp.keys())}")
-        import json as _json
-        print(f"    Raw response (first 500 chars): {_json.dumps(joins_resp)[:500]}")
-        # Last-resort: if the response itself is a list
-        if isinstance(joins_resp, list):
-            genie_joins = joins_resp
-        # Last-resort: check if joins are embedded in the space config
-        elif not genie_joins:
-            for key in ("joins", "genie_joins", "table_joins", "join_definitions", "relationships"):
-                if space.get(key):
-                    genie_joins = space[key]
-                    print(f"    Found joins in space config under key: '{key}'")
-                    break
-else:
-    print(f"  ⚠ Joins API error: {joins_resp.get('error', joins_resp)}")
-    # Fallback: some API versions embed joins in the main space config
-    genie_joins = space.get("joins", space.get("genie_joins", []))
+# Genie join definitions — try several known endpoint variants
+import json as _json
+_joins_found = False
+genie_joins  = []
+
+for _joins_path in [
+    f"/api/2.0/data-rooms/{SPACE_ID}/joins",
+    f"/api/2.0/data-rooms/{SPACE_ID}/table-joins",
+    f"/api/2.0/data-rooms/{SPACE_ID}/join-definitions",
+    f"/api/2.0/data-rooms/{SPACE_ID}/table-relationships",
+]:
+    _resp = api_get(_joins_path)
+    if "error" not in _resp:
+        for _key in ("joins", "genie_joins", "table_joins", "join_definitions", "relationships"):
+            if _resp.get(_key):
+                genie_joins  = _resp[_key]
+                _joins_found = True
+                break
+        if not _joins_found and isinstance(_resp, list) and _resp:
+            genie_joins  = _resp
+            _joins_found = True
+        if _joins_found:
+            break
+
+# Last resort: check if joins are embedded in the main space config object
+if not _joins_found:
+    for _key in ("joins", "genie_joins", "table_joins", "join_definitions", "relationships"):
+        if space.get(_key):
+            genie_joins  = space[_key]
+            _joins_found = True
+            break
+
+# Debug output when joins are still not found — print space keys + raw space to help diagnose
+if not _joins_found:
+    print(f"  ⚠ Joins not found via any known endpoint or space config key.")
+    print(f"    Space object top-level keys: {list(space.keys())}")
+    print(f"    Space object (first 1000 chars): {_json.dumps(space)[:1000]}")
 
 # Warehouse type (serverless vs. classic)
 warehouse_id   = space.get("warehouse_id", "")
