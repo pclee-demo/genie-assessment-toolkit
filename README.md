@@ -8,36 +8,36 @@ A structured diagnostic for Databricks Genie spaces. Run it against any space to
 
 | Area | What it looks for |
 |------|-------------------|
-| **0. Data & UC Readiness** | Genie joins, PK/FK constraints, table ownership, serverless warehouse, space & warehouse permissions, UC table grants |
-| **1. Table & Space Curation** | Table count, data layer quality (gold vs. bronze/silver), UC tags, wide tables, space description |
-| **2. Metadata Quality** | Column description coverage, table comments, coded column descriptions, entity matching candidates, date type safety, row filters / column masks |
-| **3. Example SQL** | Count, query-type coverage (JOIN, aggregation, time filter, top-N, period-over-period), hardcoded values, parameterisation, table reference validity |
-| **4. Instructions** | Business rules vs. schema dumps, inline SQL, emphatic overrides, instruction length |
-| **5. Sample Questions** | Count and diversity (manual review prompt) |
-| **6. Benchmarks** | Count, gold-standard SQL completeness, complexity coverage |
-| **7. Semantic Layer** | Metric Views in space, SQL Expressions (Measures, Dimensions, Filters, Synonyms) |
+| **0. Data & UC Readiness** | Genie joins, PK/FK constraints, UC Metric Views, table ownership, serverless warehouse, space & warehouse permissions, UC table grants |
+| **1. Table & Space Curation** | Base table count (metric views excluded), data layer quality (gold vs. bronze/silver), UC tags, wide tables, space description |
+| **2. Metadata Quality** | Column description coverage, table comments, coded column value descriptions, entity matching candidates, date type safety, business abbreviation audit (unmapped RM/KPI/MFA etc.) |
+| **3. Genie Instructions Configuration** | SQL Queries tab: count, query-type coverage (JOIN, aggregation, time filter, top-N, period-over-period), hardcoded values, parameterisation (Trusted Assets), table reference validity, SQL/sample question alignment; Text tab: structural sections, inline SQL, prose metrics/joins, instruction length; Joins tab: completeness; SQL Expressions tab: Measures, Dimensions, Synonyms (skipped if UC Metric Views present) |
+| **4. Sample Questions** | Count, table coverage (flags tables with no question coverage), diversity prompt |
+| **5. Benchmarks** | Count, gold-standard SQL completeness |
 
-**Scoring:** each area is scored 1–3 (Poor / OK / Good). Maximum score is **24/24**.
+**Scoring:** each area is scored 1–3 (Poor / OK / Good). Maximum score is **18/18**.
 
 **Verdict thresholds:**
-- ≥ 21/24 → **PRODUCTION READY**
-- ≥ 15/24 → **NEEDS IMPROVEMENT**
-- < 15/24 → **RECOMMEND REBUILD**
+- ≥ 15/18 → **PRODUCTION READY**
+- ≥ 11/18 → **NEEDS IMPROVEMENT**
+- < 11/18 → **RECOMMEND REBUILD**
 
-**Per-area minimums:** if Areas 0 (Data & UC Readiness), 2 (Metadata Quality), or 6 (Benchmarks) score Poor, the verdict is capped at **NEEDS IMPROVEMENT** regardless of total score.
+**Per-area minimums:** if Areas 0 (Data & UC Readiness), 2 (Metadata Quality), or 5 (Benchmarks) score Poor, the verdict is capped at **NEEDS IMPROVEMENT** regardless of total score.
 
 ---
 
 ## Output
 
 A `.md` assessment report containing:
-- Scored scorecard across all 8 areas
+- Scored scorecard across all 6 areas
 - Detailed findings per area with specific flags
-- Prioritised recommendations with exact fix steps and UI paths
+- Prioritised next steps with exact fix steps and UI paths
 - *(If LLM available)* Domain Curation Guide — suggested table groupings for spaces with too many tables
-- *(If LLM available)* Sample Questions & KPIs — 15 business questions, top 5 benchmark candidates, 5 KPI SQL Expression Measure candidates
-- Starter: Instructions Template — 7-section template to copy into Configuration > Instructions
-- Starter: SQL Query Templates — missing query patterns to copy into Configuration > SQL Queries
+- *(If LLM available)* Sample Questions & KPIs — 15 business questions, top 5 benchmark candidates, 5 KPI definitions
+- *(If LLM available)* Instructions Draft — ready-to-paste rewrite using Databricks best-practice structure
+- *(If LLM available)* SQL Query Examples — parameterised queries covering missing pattern gaps
+- Starter: Instructions Template — fallback template when LLM is unavailable
+- Starter: SQL Query Templates — fallback templates when LLM is unavailable
 
 Reports are saved to `/Workspace/Users/<you>/genie-assessments/<space>_<date>.md` by default, or a custom path.
 
@@ -95,7 +95,7 @@ genie-assessment-toolkit/
     └── genie_assessment/
         ├── fetch.py                # API setup, space config, table metadata,
         │                           # tags, PK/FK, joins, permissions
-        ├── score.py                # Scores Areas 0–7, computes verdict
+        ├── score.py                # Scores Areas 0–5, computes verdict
         ├── recommend.py            # Tiered recommendations per area
         ├── llm.py                  # Domain curation + sample question generation
         └── report.py               # Markdown report builder + file writer
@@ -116,13 +116,12 @@ Each source file is a Databricks notebook run via `%run`. Variables flow between
 
 **Work through findings in area order** — blockers in Area 0 (joins, permissions) will compound problems in every other area. Fix the foundation before tuning the content.
 
-See [`examples/FinanceFirst_Bank_Retail_Wealth_example.md`](examples/FinanceFirst_Bank_Retail_Wealth_example.md) for a full sample report against a "mid" quality Genie space — retail banking + wealth management, 7 tables, score 13/24 (RECOMMEND REBUILD).
+See [`examples/Credit_Card_Fraud_Detection_Risk_2026-03-25.md`](examples/Credit_Card_Fraud_Detection_Risk_2026-03-25.md) for a full sample report — credit card fraud detection space, 4 base tables + 4 UC Metric Views, score 10/18.
 
 **Priority order for a typical remediation:**
 1. Area 0 — permissions and joins (space won't work at all without these)
 2. Area 2 — metadata quality (biggest driver of answer accuracy)
-3. Area 3 — example SQL (teaches Genie query patterns)
-4. Area 7 — semantic layer (consistency of KPI calculations)
-5. Areas 1, 4, 5, 6 — curation, instructions, questions, benchmarks
+3. Area 3 — instructions configuration (SQL examples, instructions text, joins, SQL expressions)
+4. Areas 1, 4, 5 — curation, sample questions, benchmarks
 
 Some findings don't affect the score but surface governance and best-practice gaps worth addressing before a broader rollout.
