@@ -508,10 +508,10 @@ if hardcoded_sqls:
     a3_flags.append(f"SQL Queries tab: hardcoded values in: {'; '.join(hardcoded_sqls[:3])} — use `:param_name` syntax")
 if not parameterised_sqls and sql_count > 0:
     a3_flags.append("SQL Queries tab: no parameterised queries — add `:param_name` or `{{param}}` examples")
-if not has_join_example and table_count > 1: missing_types.append("multi-table `JOIN`s")
+if not has_join_example and table_count > 1: missing_types.append("multi-table JOINs")
 if not has_date_example:    missing_types.append("date/time filtering")
-if not has_agg_example:     missing_types.append("aggregations (`SUM`/`COUNT`/`GROUP BY`)")
-if not has_topn_example:    missing_types.append("top-N ranking (`ORDER BY...LIMIT`)")
+if not has_agg_example:     missing_types.append("aggregations (SUM/COUNT/GROUP BY)")
+if not has_topn_example:    missing_types.append("top-N ranking (ORDER BY...LIMIT)")
 if not has_compare_example: missing_types.append("period-over-period / YoY comparisons")
 if missing_types and sql_count > 0:
     a3_flags.append(f"SQL Queries tab: missing pattern examples for: {', '.join(missing_types)}")
