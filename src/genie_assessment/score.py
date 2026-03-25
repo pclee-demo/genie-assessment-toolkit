@@ -470,7 +470,7 @@ BIZ_RULE = [
 INLINE_SQL_PAT = re.compile(r"\bSELECT\b.{5,200}\bFROM\b", re.IGNORECASE | re.DOTALL)
 EMPHATIC_PAT   = re.compile(
     r"\*\*\s*(CRITICAL|IMPORTANT|ALWAYS|NEVER|MUST|WARNING)\b.*?\*\*|"
-    r"!!+\s*\w|CRITICAL\s+(JOIN|RULE|NOTE)|ALWAYS\s+(JOIN|USE|FILTER)", re.IGNORECASE
+    r"!!+\s*\w|CRITICAL\s+(JOIN|NOTE)\b|ALWAYS\s+(JOIN|USE|FILTER)\b", re.IGNORECASE
 )
 
 schema_hits, biz_hits  = 0, 0
@@ -505,7 +505,7 @@ elif schema_hits > 3:
 if inline_sql_blocks:
     a4_flags.append(f"Text instructions contain inline SQL ({len(inline_sql_blocks)} block(s)): {'; '.join(inline_sql_blocks[:3])} — move SQL examples to the SQL Queries tab")
 if emphatic_blocks:
-    a4_flags.append(f"Emphatic override patterns (**CRITICAL**, !!ALWAYS!!) in: {'; '.join(emphatic_blocks[:3])} — these signal workarounds; fix the underlying join/data model or use the Joins tab instead")
+    a4_flags.append(f"Emphatic override patterns (e.g. **NEVER**, !!ALWAYS!!) found in: {'; '.join(emphatic_blocks[:3])} — these signal workarounds; fix the underlying data model or use the Joins tab instead")
 if long_blocks:
     a4_flags.append(f"Long instruction blocks (>300 chars): {'; '.join(long_blocks[:3])} — split into single-topic blocks")
 if total_instr_lines > 100:
