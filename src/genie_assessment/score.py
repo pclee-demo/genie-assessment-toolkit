@@ -316,7 +316,7 @@ if tables_no_comment:
 if thin_comments:
     a2_flags.append(f"Tables with thin comments (<50 chars): {', '.join(thin_comments)} — describe the grain, scope, key metrics, and relationships in plain English")
 if generic_flags:
-    a2_flags.append(f"Generic/technical descriptions on: {', '.join(generic_flags[:5])}" +
+    a2_flags.append(f"Generic/technical descriptions on: {', '.join(f'`{c}`' for c in generic_flags[:5])}" +
                     (f" (+{len(generic_flags)-5} more)" if len(generic_flags) > 5 else ""))
 
 ABBREV_PAT = re.compile(
@@ -333,7 +333,7 @@ for table_id, meta in table_metadata.items():
 if technical_no_desc:
     a2_flags.append(
         f"Technical column names with no description ({len(technical_no_desc)}): "
-        f"{', '.join(technical_no_desc[:4])}"
+        f"{', '.join(f'`{c}`' for c in technical_no_desc[:4])}"
         + (f" (+{len(technical_no_desc)-4} more)" if len(technical_no_desc) > 4 else "")
         + " — add a UC column comment, or set a display name override in Configuration > Data "
         "so business users see plain-English names instead of abbreviations"
@@ -341,14 +341,14 @@ if technical_no_desc:
 if enum_missing_dict:
     a2_flags.append(
         f"Coded columns missing description of their values ({len(enum_missing_dict)}): "
-        f"{', '.join(enum_missing_dict[:4])}" +
+        f"{', '.join(f'`{c}`' for c in enum_missing_dict[:4])}" +
         (f" (+{len(enum_missing_dict)-4} more)" if len(enum_missing_dict) > 4 else "") +
         " — add plain-English descriptions to the UC column comment (e.g. 'A=Active, I=Inactive') "
         "and enable Entity Matching in Configuration > Data so Genie can resolve user-typed values"
     )
 if date_as_string:
     a2_flags.append(
-        f"Date/time columns stored as STRING ({len(date_as_string)}): {', '.join(date_as_string[:3])}"
+        f"Date/time columns stored as STRING ({len(date_as_string)}): {', '.join(f'`{c}`' for c in date_as_string[:3])}"
         " — cast to DATE/TIMESTAMP or Genie cannot do date arithmetic"
     )
 
