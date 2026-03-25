@@ -205,10 +205,10 @@ if wide_tables:
         "the columns business users need"
     )
 
-SPACE_DESC_METRIC_PAT = re.compile(r"\bmetric|kpi|revenue|measure|booking|volume|ratio\b", re.IGNORECASE)
-SPACE_DESC_DIM_PAT    = re.compile(r"\bdimension|segment|region|category|by\b|\bproduct\b|\bcustomer\b", re.IGNORECASE)
-SPACE_DESC_GRAIN_PAT  = re.compile(r"\bgrain|row|daily|weekly|monthly|refresh|updated|freshness|transaction|aggregated\b", re.IGNORECASE)
-SPACE_DESC_USER_PAT   = re.compile(r"\buser|analyst|manager|team|audience|stakeholder|leader|operations\b", re.IGNORECASE)
+SPACE_DESC_METRIC_PAT = re.compile(r"\bmetric|kpi|revenue|measure|booking|volume|ratio|score|rate|amount|count|spend|cost|fraud|risk\b", re.IGNORECASE)
+SPACE_DESC_DIM_PAT    = re.compile(r"\bdimension|segment|region|categor|by\b|\bproduct\b|\bcustomer\b|\baccount\b|\bchannel\b|\btype\b|\bstatus\b", re.IGNORECASE)
+SPACE_DESC_GRAIN_PAT  = re.compile(r"\bgrain|row|daily|weekly|monthly|refresh|updated|freshness|transaction|aggregated|per\b|event\b|one row\b", re.IGNORECASE)
+SPACE_DESC_USER_PAT   = re.compile(r"\buser|analyst|manager|team|audience|stakeholder|leader|operations|business\b", re.IGNORECASE)
 
 space_desc = (space.get("description", "") or "").strip()
 if not space_desc:
