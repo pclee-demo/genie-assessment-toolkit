@@ -174,9 +174,6 @@ if a5 == 1:
         "Use the Sample Question & KPI Generator below to create 10+ questions immediately — no business user input required",
         "Even 5 good questions dramatically improves first-time user experience and reduces 'I don't know what to ask' drop-off",
         "Cover at least one question per major business metric and one per target user persona",
-        *(["No Trusted Answers configured — once you have sample questions, add Trusted Answers for your most critical "
-           "business questions (e.g. company-level revenue, headcount) via Configuration > Trusted Answers; "
-           "these guarantee a consistent, verified answer regardless of how the question is phrased"] if ta_count == 0 else []),
     ]))
 elif a5 == 2:
     recs.append(("Sample Questions", SEVERITY[2], [
@@ -187,8 +184,6 @@ elif a5 == 2:
         *(["Tables with no question coverage: " + ", ".join(uncovered_tables)
            + " — add sample questions that feature these tables so users discover what they can answer; "
            "if no good questions exist, consider whether these tables belong in this space"] if uncovered_tables else []),
-        *(["No Trusted Answers configured — add 3–5 via Configuration > Trusted Answers for your most critical "
-           "business questions to guarantee consistent, verified answers"] if ta_count == 0 else []),
     ]))
 
 # ── Area 6: Benchmarks ────────────────────────────────────────────────────────

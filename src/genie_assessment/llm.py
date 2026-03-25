@@ -168,17 +168,21 @@ Here is the metadata for the tables in this space:
 
 {metadata_block}{lineage_for_q}
 
-Please generate:
-1. 15 realistic questions a business user would ask about this data, in natural language. For each question note whether it is: aggregation, filter, trend over time, comparison, or top-N.
-2. The 5 most important of those questions to use as benchmark questions (mark these clearly).
-3. 5 KPIs a business user would want to monitor regularly from this data. For each KPI use EXACTLY this format (no bold anywhere in the KPI block):
-   KPI name: <short business name>
-   Description: <one sentence>
-   Formula hint: <plain-English formula, e.g. "COUNT of distinct customers with at least one transaction in the last 30 days">
-   - These will be used as SQL Expression Measures in Databricks Genie (Configuration > SQL Expressions)
+Output EXACTLY three sections using these headings (no other headings, no preamble):
+
+### Sample Questions
+List 15 realistic questions a business user would ask, numbered 1–15. After each question, note the type in parentheses: aggregation, filter, trend, comparison, or top-N.
+
+### Benchmark Questions
+List the 5 most important questions from the list above (copy them verbatim), numbered 1–5. These will be used as Genie benchmarks.
+
+### KPIs
+List 5 KPIs a business user would want to monitor. For each KPI use EXACTLY this format (no bold or italic anywhere in this section):
+KPI name: <short business name>
+Description: <one sentence>
+Formula hint: <plain-English formula, e.g. "COUNT of distinct customers with at least one transaction in the last 30 days">
 
 Use plain business language. Do not write SQL. Do not reference column names directly — use business-friendly terms.
-Do not use bold or italic markdown formatting inside KPI blocks.
 Do not include any offers, follow-up suggestions, or questions at the end of your response."""
 
 print(DIVIDER)

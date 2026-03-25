@@ -566,17 +566,11 @@ if sq_count > 0:
         "10 questions spread across different business areas and question types"
     )
 
-# Trusted Answers check
-if ta_count == 0 and sq_count >= 5:
+# Trusted Answers — positive signal only (they're auto-generated from verified responses, not manually added)
+if ta_count > 0:
     a5_flags.append(
-        "No Trusted Answers configured — for critical or frequently-asked questions "
-        "that must always return a specific result, add Trusted Answers via "
-        "Configuration > Trusted Answers; these take priority over Genie's LLM response"
-    )
-elif ta_count > 0:
-    a5_flags.append(
-        f"Trusted Answers: {ta_count} configured — good practice for pinning responses "
-        "to critical business questions"
+        f"Trusted Answers: {ta_count} configured — verified responses will be served "
+        "consistently regardless of how the question is phrased"
     )
 
 # Table coverage check — flag tables not referenced by any sample question
