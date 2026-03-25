@@ -182,12 +182,18 @@ md_lines += [
     "",
     "---",
     "",
-    "## Findings by Area",
+    "## Assessment by Area",
     "",
 ]
 
+# Build rec lookup: short area name → (severity, items)
+_recs_lookup = {rec_area: (sev, items) for rec_area, sev, items in recs}
+
 for area, score, label, area_flags in zip(areas, scores, labels, flags):
-    md_lines.append(f"### {area}")
+    rating    = "⬜ N/A" if label == "N/A" else BAR_MD[score]
+    score_str = "N/A"   if label == "N/A" else f"{score}/3"
+    md_lines.append(f"### {area} — {rating} ({score_str})")
+
     if label == "N/A":
         md_lines.append("_Not scored (N/A)_")
     elif not area_flags:
@@ -195,23 +201,17 @@ for area, score, label, area_flags in zip(areas, scores, labels, flags):
     else:
         for flag in area_flags:
             md_lines.append(f"- ⚠ {flag}")
-    md_lines.append("")
 
-md_lines += [
-    "---",
-    "",
-    "## Recommended Next Steps",
-    "",
-]
-if recs:
-    for i, (area, severity, items) in enumerate(recs, 1):
-        md_lines.append(f"### {i}. {severity.strip()}  —  {area}")
-        for item in items:
-            md_lines.append(f"- {item}")
+    # Append matching recommendation inline (rec area is the short name after "N. ")
+    _short = area.split(". ", 1)[1] if ". " in area else area
+    if _short in _recs_lookup:
+        _sev, _items = _recs_lookup[_short]
         md_lines.append("")
-else:
-    md_lines.append("✅ No issues found — space looks production ready.")
-    md_lines.append("")
+        md_lines.append(f"**Next steps** ({_sev.strip()}):")
+        for item in _items:
+            md_lines.append(f"- {item}")
+
+    md_lines += ["", "---", ""]
 
 # Domain curation section (only if LLM ran)
 if domain_output:
