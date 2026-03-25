@@ -26,7 +26,7 @@ if "error" in space:
 instructions_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/instructions")
 all_instructions  = instructions_resp.get("instructions", [])
 text_instructions = [i for i in all_instructions if i.get("instruction_type") == "TEXT_INSTRUCTION"]
-sql_instructions  = [i for i in all_instructions if i.get("instruction_type") == "SQL_INSTRUCTION"]
+sql_instructions  = [i for i in all_instructions if i.get("instruction_type") in ("SQL_INSTRUCTION", "SQL_SNIPPET")]
 
 
 # ── Sample questions + benchmarks ─────────────────────────────────────────────
@@ -106,10 +106,9 @@ for table_id in table_identifiers:
     except Exception:
         pass
 
-# Genie join definitions — joins live in the /instructions endpoint as JOIN_INSTRUCTION items
+# Genie join definitions — joins live in the /instructions endpoint as FROM_SNIPPET items
 # (visible as the "Joins" tab in Genie Configuration > Instructions)
-_JOIN_TYPES = {"JOIN_INSTRUCTION", "TABLE_JOIN", "JOIN", "JOINS"}
-genie_joins = [i for i in all_instructions if i.get("instruction_type") in _JOIN_TYPES]
+genie_joins = [i for i in all_instructions if i.get("instruction_type") == "FROM_SNIPPET"]
 
 # Warehouse type (serverless vs. classic)
 warehouse_id   = space.get("warehouse_id", "")
