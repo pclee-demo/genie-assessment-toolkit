@@ -348,8 +348,8 @@ if enum_missing_dict:
     )
 if date_as_string:
     a2_flags.append(
-        f"Date/time columns stored as STRING ({len(date_as_string)}): {', '.join(f'`{c}`' for c in date_as_string[:3])}"
-        " — cast to DATE/TIMESTAMP or Genie cannot do date arithmetic"
+        f"Date/time columns stored as `STRING` ({len(date_as_string)}): {', '.join(f'`{c}`' for c in date_as_string[:3])}"
+        " — cast to `DATE`/`TIMESTAMP` or Genie cannot do date arithmetic"
     )
 
 tables_with_row_filter = [
@@ -363,7 +363,7 @@ tables_with_col_mask = [
 restricted_tables = sorted(set(tables_with_row_filter + tables_with_col_mask))
 if restricted_tables:
     a2_flags.append(
-        f"Tables with row filters or column masks: {', '.join(restricted_tables[:5])}"
+        f"Tables with row filters or column masks: {', '.join(f'`{t}`' for t in restricted_tables[:5])}"
         + (f" (+{len(restricted_tables)-5} more)" if len(restricted_tables) > 5 else "")
         + " — Entity Matching is automatically disabled on these tables; "
         "users querying filtered columns may get incomplete results without explanation"
@@ -431,13 +431,13 @@ a3_flags = []
 if sql_count < 10:
     a3_flags.append(f"Only {sql_count} SQL examples — recommend 10+ to teach query patterns")
 if hardcoded_sqls:
-    a3_flags.append(f"Hardcoded values in: {'; '.join(hardcoded_sqls[:3])} — use :param_name syntax")
+    a3_flags.append(f"Hardcoded values in: {'; '.join(hardcoded_sqls[:3])} — use `:param_name` syntax")
 if not parameterised_sqls and sql_count > 0:
-    a3_flags.append("No parameterised queries — add :param_name or {{param}} examples")
-if not has_join_example:    missing_types.append("multi-table JOINs")
+    a3_flags.append("No parameterised queries — add `:param_name` or `{{param}}` examples")
+if not has_join_example:    missing_types.append("multi-table `JOIN`s")
 if not has_date_example:    missing_types.append("date/time filtering")
-if not has_agg_example:     missing_types.append("aggregations (SUM/COUNT/GROUP BY)")
-if not has_topn_example:    missing_types.append("top-N ranking (ORDER BY...LIMIT)")
+if not has_agg_example:     missing_types.append("aggregations (`SUM`/`COUNT`/`GROUP BY`)")
+if not has_topn_example:    missing_types.append("top-N ranking (`ORDER BY...LIMIT`)")
 if not has_compare_example: missing_types.append("period-over-period / YoY comparisons")
 if missing_types and sql_count > 0:
     a3_flags.append(f"Missing query-type examples for: {', '.join(missing_types)}")
@@ -503,7 +503,7 @@ if not text_instructions:
 elif schema_hits > 3:
     a4_flags.append("Instructions look like a schema/data dictionary — Genie reads UC metadata directly; use instructions for business rules instead")
 if inline_sql_blocks:
-    a4_flags.append(f"Text instructions contain inline SQL ({len(inline_sql_blocks)} block(s)): {'; '.join(inline_sql_blocks[:3])} — move SQL examples to the SQL Queries tab")
+    a4_flags.append(f"Text instructions contain inline `SELECT...FROM` SQL ({len(inline_sql_blocks)} block(s)): {'; '.join(inline_sql_blocks[:3])} — move SQL examples to the SQL Queries tab")
 if emphatic_blocks:
     a4_flags.append(f"Emphatic override patterns (e.g. **NEVER**, !!ALWAYS!!) found in: {'; '.join(emphatic_blocks[:3])} — these signal workarounds; fix the underlying data model or use the Joins tab instead")
 if long_blocks:
@@ -602,7 +602,7 @@ if sq_count >= 3 and table_count >= 2:
     if uncovered_tables:
         a5_flags.append(
             f"Tables with no sample question coverage ({len(uncovered_tables)}): "
-            f"{', '.join(uncovered_tables)} — users will never discover what these tables can answer; "
+            f"{', '.join(f'`{t}`' for t in uncovered_tables)} — users will never discover what these tables can answer; "
             "add at least one sample question per table that showcases its key metrics or use case"
         )
         if len(uncovered_tables) >= max(2, table_count // 2) and a5 == 3:
