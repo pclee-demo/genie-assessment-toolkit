@@ -178,9 +178,9 @@ elif a3 == 2:
             *(["Text tab: trim to ≤100 lines — remove anything Genie can infer from metadata or SQL examples"] if total_instr_lines > 100 else []),
             "See the Instructions Draft (LLM-generated) section below for a ready-to-use rewrite",
         ]
-    if table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
+    if base_table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
         items_a3 += [
-            f"Joins tab: verify all {table_count} table relationships are configured — only {join_count} join(s) found",
+            f"Joins tab: verify all {base_table_count} base table relationships are configured — only {join_count} join(s) found",
         ]
     if not metric_views_in_space and expr_count == 0:
         items_a3 += [

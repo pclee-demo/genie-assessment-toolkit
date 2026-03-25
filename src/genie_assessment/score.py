@@ -171,12 +171,20 @@ elif metric_views_in_catalog:
     )
 
 # ── Area 1: Table & Space Curation ───────────────────────────────────────────
-table_count = len(table_identifiers)
-schemas     = list(set(".".join(t.split(".")[:2]) for t in table_identifiers))
+table_count      = len(table_identifiers)
+schemas          = list(set(".".join(t.split(".")[:2]) for t in table_identifiers))
+# Metric views are semantic layer objects — exclude from the "table budget" used for
+# curation scoring and join completeness checks. They don't degrade Genie accuracy
+# the way extra raw/base tables do.
+mv_count         = len(metric_views_in_space)
+base_table_count = table_count - mv_count
 
-if table_count <= 5:
+# Recalculate joins requirement now that metric view count is known
+tables_needing_joins = max(0, base_table_count - 1)
+
+if base_table_count <= 5:
     a1, a1l = 3, "Good"
-elif table_count <= 9:
+elif base_table_count <= 9:
     a1, a1l = 2, "OK"
 else:
     a1, a1l = 1, "Poor"
@@ -184,8 +192,9 @@ else:
 a1_flags = []
 if len(schemas) > 1:
     a1_flags.append(f"Tables span {len(schemas)} schemas — consider splitting by domain")
-if table_count > 9:
-    a1_flags.append(f"{table_count} tables is too many; Genie accuracy degrades above ~9")
+if base_table_count > 9:
+    a1_flags.append(f"{base_table_count} base tables is too many; Genie accuracy degrades above ~9"
+                    + (f" (excludes {mv_count} Metric View(s))" if mv_count else ""))
 
 NON_GOLD_KEYWORDS  = ["raw", "bronze", "silver", "landing", "staging", "ingest", "stg_", "ods_"]
 GOLD_TAG_KEYS      = {"layer", "data_tier", "medallion_layer", "data_layer"}
@@ -632,9 +641,11 @@ else:
         )
 
 # Joins tab — completeness check (only flagged here when some joins exist; missing joins stay in Area 0)
-if table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
+# Uses base_table_count — metric views define their relationships at the UC level
+if base_table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
+    _mv_note = f" (+{mv_count} Metric View(s) with UC-level joins)" if mv_count else ""
     a3_flags.append(
-        f"Joins tab: only {join_count} join(s) defined for {table_count} tables — "
+        f"Joins tab: only {join_count} join(s) defined for {base_table_count} base tables{_mv_note} — "
         "verify all table relationships are configured in Configuration > Joins"
     )
 
