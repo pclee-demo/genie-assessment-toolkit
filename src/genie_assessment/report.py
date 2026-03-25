@@ -161,7 +161,7 @@ BAR_MD = {3: "🟢 Good", 2: "🟡 OK  ", 1: "🔴 Poor"}
 
 md_lines = [
     f"# Genie Assessment: {space_name}",
-    f"**Date:** {today_str}  |  **Space ID:** {SPACE_ID}  |  **Score:** {total_str}  |  **Verdict:** {verdict}",
+    f"**Date:** {today_str}  |  **Space ID:** {SPACE_ID}  |  **Score:** {total_str}",
     "",
     f"> {verdict_note}",
     "",
