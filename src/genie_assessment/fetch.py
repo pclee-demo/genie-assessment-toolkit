@@ -134,9 +134,13 @@ for table_id in table_identifiers:
     except Exception:
         pass
 
-# Genie join definitions — joins live in the /instructions endpoint as FROM_SNIPPET items
-# (visible as the "Joins" tab in Genie Configuration > Instructions)
-genie_joins = [i for i in all_instructions if i.get("instruction_type") == "FROM_SNIPPET"]
+# Genie join definitions — FROM_SNIPPET items whose parsed content has a "join" key.
+# FROM_SNIPPET also covers table registrations (content has "comment" key) — exclude those.
+genie_joins = [
+    i for i in all_instructions
+    if i.get("instruction_type") == "FROM_SNIPPET"
+    and "join" in json.loads(i.get("content", "{}") or "{}")
+]
 
 # Warehouse type (serverless vs. classic)
 warehouse_id   = space.get("warehouse_id", "")
