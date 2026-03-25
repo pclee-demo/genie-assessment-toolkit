@@ -234,7 +234,7 @@ if non_gold:
     a1_flags.append(f"Non-gold tables detected: {', '.join(non_gold)} — replace with gold/semantic-layer equivalents")
 if gold_untagged:
     a1_flags.append(
-        f"Layer unclear for: {', '.join(gold_untagged[:5])}"
+        f"Layer unclear for: {', '.join(f'`{t}`' for t in gold_untagged[:5])}"
         + (f" (+{len(gold_untagged)-5} more)" if len(gold_untagged) > 5 else "")
         + " — apply UC tags (e.g. layer=gold) to make data tier explicit; "
         "see: ALTER TABLE ... SET TAGS ('layer' = 'gold')"
