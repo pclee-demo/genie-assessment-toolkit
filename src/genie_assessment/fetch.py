@@ -60,9 +60,8 @@ for _i in all_instructions:
 # ── Sample questions + benchmarks ─────────────────────────────────────────────
 questions_resp   = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/curated-questions")
 all_questions    = questions_resp.get("curated_questions", [])
-sample_questions      = [q for q in all_questions if q.get("question_type") == "SAMPLE_QUESTION"]
-benchmarks            = [q for q in all_questions if q.get("question_type") == "BENCHMARK"]
-benchmark_suggestions = [q for q in all_questions if q.get("question_type") == "BENCHMARK_SUGGESTION"]
+sample_questions = [q for q in all_questions if q.get("question_type") == "SAMPLE_QUESTION"]
+benchmarks       = [q for q in all_questions if q.get("question_type") == "BENCHMARK"]
 
 # ── Table + column metadata from UC ──────────────────────────────────────────
 table_identifiers = space.get("table_identifiers", [])
@@ -181,7 +180,7 @@ trusted_answers = (
 print(f"✓ Space:         {space.get('display_name', space.get('title', ''))}")
 print(f"  Tables:        {len(table_identifiers)}")
 print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} SQL queries, {len(sql_expressions)} SQL expressions, {len(genie_joins)} joins")
-print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks, {len(benchmark_suggestions)} benchmark suggestions (unconfirmed)")
+print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks")
 print(f"  Trusted Ans:   {len(trusted_answers)}")
 print(f"  PK/FK tables:  {len(pk_fk_tables)}/{len(table_identifiers)}")
 print(f"  Space ACL:     {len(space_acl)} entries  |  Warehouse ACL: {len(warehouse_acl)} entries")
