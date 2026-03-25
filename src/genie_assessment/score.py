@@ -270,7 +270,7 @@ for table_id, meta in table_metadata.items():
     if not tc:
         tables_no_comment.append(table_id.split(".")[-1])
     elif len(tc) < 50:
-        thin_comments.append(f"{table_id.split('.')[-1]} ({len(tc)} chars)")
+        thin_comments.append((table_id.split('.')[-1], len(tc)))
 
     cols = meta.get("columns", [])
     col_described = 0
@@ -310,11 +310,11 @@ if a2 == 2 and (len(enum_missing_dict) > 5 or len(date_as_string) > 2):
 
 a2_flags = []
 if tables_no_desc:
-    a2_flags.append(f"Tables with no column descriptions: {', '.join(tables_no_desc)}")
+    a2_flags.append(f"Tables with no column descriptions: {', '.join(f'`{t}`' for t in tables_no_desc)}")
 if tables_no_comment:
-    a2_flags.append(f"Tables with no table-level comment: {', '.join(tables_no_comment)}")
+    a2_flags.append(f"Tables with no table-level comment: {', '.join(f'`{t}`' for t in tables_no_comment)}")
 if thin_comments:
-    a2_flags.append(f"Tables with thin comments (<50 chars): {', '.join(thin_comments)} — describe the grain, scope, key metrics, and relationships in plain English")
+    a2_flags.append(f"Tables with thin comments (<50 chars): {', '.join(f'`{t}` ({n} chars)' for t, n in thin_comments)} — describe the grain, scope, key metrics, and relationships in plain English")
 if generic_flags:
     a2_flags.append(f"Generic/technical descriptions on: {', '.join(f'`{c}`' for c in generic_flags[:5])}" +
                     (f" (+{len(generic_flags)-5} more)" if len(generic_flags) > 5 else ""))
