@@ -17,11 +17,6 @@ A structured diagnostic for Databricks Genie spaces. Run it against any space to
 
 **Scoring:** each area is scored 1–3 (Poor / OK / Good). Maximum score is **18/18**.
 
-**Verdict thresholds:**
-- ≥ 15/18 → **PRODUCTION READY**
-- ≥ 11/18 → **NEEDS IMPROVEMENT**
-- < 11/18 → **RECOMMEND REBUILD**
-
 **Per-area minimums:** if Areas 0 (Data & UC Readiness), 2 (Metadata Quality), or 5 (Benchmarks) score Poor, the verdict is capped at **NEEDS IMPROVEMENT** regardless of total score.
 
 ---
