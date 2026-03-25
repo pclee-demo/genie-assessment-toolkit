@@ -108,6 +108,13 @@ if a2 == 1:
     )
     if date_as_string:
         items_a2.append("Cast date/time columns stored as STRING to DATE or TIMESTAMP — Genie cannot do date arithmetic on strings")
+    if unmapped_abbrevs:
+        items_a2.append(
+            "Business abbreviations with no synonym or instruction mapping: " + ", ".join(unmapped_abbrevs)
+            + " — add a SQL Expression Synonym for each (Configuration > SQL Expressions > Synonym) "
+            "so Genie resolves user queries using the full term; "
+            "or define them under Business Terms in the Instructions tab"
+        )
     recs.append(("Metadata Quality", SEVERITY[1], items_a2))
 elif a2 == 2:
     recs.append(("Metadata Quality", SEVERITY[2], [
@@ -119,6 +126,10 @@ elif a2 == 2:
            + (f" (+{len(enum_missing_dict)-4} more)" if len(enum_missing_dict) > 4 else "")
            + " — add plain-English descriptions to UC column comments and enable Entity Matching (Configuration > Data)"] if enum_missing_dict else []),
         *(["Cast date/time STRING columns to DATE/TIMESTAMP: " + ", ".join(date_as_string[:3])] if date_as_string else []),
+        *(["Business abbreviations with no synonym or instruction mapping: " + ", ".join(unmapped_abbrevs)
+           + " — add a SQL Expression Synonym for each (Configuration > SQL Expressions > Synonym) "
+           "so Genie resolves user queries using the full term (e.g. 'Relationship Manager' → `rm_id`); "
+           "or define them under Business Terms in the Instructions tab"] if unmapped_abbrevs else []),
     ]))
 
 # ── Area 3: Genie Instructions Configuration ──────────────────────────────────
