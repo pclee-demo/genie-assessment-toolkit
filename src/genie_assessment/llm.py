@@ -108,7 +108,7 @@ if USE_SYSTEM_TABLES:
     print(f"Lineage context: {len(lineage_block)} chars\n")
 
 # ── Domain Curation (only when Table & Space Curation is Poor or OK) ──────────
-space_name_str = space.get("display_name", space.get("title", "this Genie space"))
+space_name_str = space_name  # cleaned in report.py (strips "(Clone)" and template suffixes)
 
 if a1 < 3 or len(schemas) > 1:
     lineage_section = (
