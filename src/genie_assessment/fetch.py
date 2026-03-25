@@ -28,6 +28,7 @@ all_instructions  = instructions_resp.get("instructions", [])
 text_instructions = [i for i in all_instructions if i.get("instruction_type") == "TEXT_INSTRUCTION"]
 sql_instructions  = [i for i in all_instructions if i.get("instruction_type") == "SQL_INSTRUCTION"]
 
+
 # ── Sample questions + benchmarks ─────────────────────────────────────────────
 questions_resp   = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/curated-questions")
 all_questions    = questions_resp.get("curated_questions", [])
@@ -105,43 +106,10 @@ for table_id in table_identifiers:
     except Exception:
         pass
 
-# Genie join definitions — try several known endpoint variants
-import json as _json
-_joins_found = False
-genie_joins  = []
-
-for _joins_path in [
-    f"/api/2.0/data-rooms/{SPACE_ID}/joins",
-    f"/api/2.0/data-rooms/{SPACE_ID}/table-joins",
-    f"/api/2.0/data-rooms/{SPACE_ID}/join-definitions",
-    f"/api/2.0/data-rooms/{SPACE_ID}/table-relationships",
-]:
-    _resp = api_get(_joins_path)
-    if "error" not in _resp:
-        for _key in ("joins", "genie_joins", "table_joins", "join_definitions", "relationships"):
-            if _resp.get(_key):
-                genie_joins  = _resp[_key]
-                _joins_found = True
-                break
-        if not _joins_found and isinstance(_resp, list) and _resp:
-            genie_joins  = _resp
-            _joins_found = True
-        if _joins_found:
-            break
-
-# Last resort: check if joins are embedded in the main space config object
-if not _joins_found:
-    for _key in ("joins", "genie_joins", "table_joins", "join_definitions", "relationships"):
-        if space.get(_key):
-            genie_joins  = space[_key]
-            _joins_found = True
-            break
-
-# Debug output when joins are still not found — print space keys + raw space to help diagnose
-if not _joins_found:
-    print(f"  ⚠ Joins not found via any known endpoint or space config key.")
-    print(f"    Space object top-level keys: {list(space.keys())}")
-    print(f"    Space object (first 1000 chars): {_json.dumps(space)[:1000]}")
+# Genie join definitions — joins live in the /instructions endpoint as JOIN_INSTRUCTION items
+# (visible as the "Joins" tab in Genie Configuration > Instructions)
+_JOIN_TYPES = {"JOIN_INSTRUCTION", "TABLE_JOIN", "JOIN", "JOINS"}
+genie_joins = [i for i in all_instructions if i.get("instruction_type") in _JOIN_TYPES]
 
 # Warehouse type (serverless vs. classic)
 warehouse_id   = space.get("warehouse_id", "")
@@ -184,6 +152,4 @@ print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} 
 print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks")
 print(f"  Trusted Ans:   {len(trusted_answers)}")
 print(f"  Joins:         {len(genie_joins)}  |  PK/FK tables: {len(pk_fk_tables)}/{len(table_identifiers)}")
-if not genie_joins and "error" not in joins_resp:
-    print(f"  (joins API response keys: {list(joins_resp.keys())} — if joins exist, check key name)")
 print(f"  Space ACL:     {len(space_acl)} entries  |  Warehouse ACL: {len(warehouse_acl)} entries")
