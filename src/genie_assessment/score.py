@@ -152,21 +152,24 @@ for _table_id in table_identifiers:
     except Exception:
         pass
 
+_mv_space_str   = ', '.join('`' + t.split('.')[-1] + '`' for t in metric_views_in_space)
+_mv_catalog_str = ', '.join('`' + t.split('.')[-1] + '`' for t in metric_views_in_catalog)
+
 if metric_views_in_space:
     a0_flags.append(
-        f"✅ Metric Views in space: {', '.join(f'`{t.split(\".\")[-1]}`' for t in metric_views_in_space)} "
+        f"✅ Metric Views in space: {_mv_space_str} "
         "— semantic layer (measures, dimensions, filters) is defined at the UC layer"
     )
     if metric_views_in_catalog:
+        _mv_cat3 = ', '.join('`' + t.split('.')[-1] + '`' for t in metric_views_in_catalog[:3])
         a0_flags.append(
-            f"Additional Metric Views in catalog not added to space: "
-            f"{', '.join(f'`{t.split(\".\")[-1]}`' for t in metric_views_in_catalog[:3])} "
+            f"Additional Metric Views in catalog not added to space: {_mv_cat3} "
             "— add them if they cover relevant metrics for this space"
         )
 elif metric_views_in_catalog:
+    _mv_cat5 = ', '.join('`' + t.split('.')[-1] + '`' for t in metric_views_in_catalog[:5])
     a0_flags.append(
-        f"Metric Views detected in catalog but not in this space: "
-        f"{', '.join(f'`{t.split(\".\")[-1]}`' for t in metric_views_in_catalog[:5])} "
+        f"Metric Views detected in catalog but not in this space: {_mv_cat5} "
         "— add to use the UC semantic layer instead of maintaining manual SQL Expressions"
     )
 
