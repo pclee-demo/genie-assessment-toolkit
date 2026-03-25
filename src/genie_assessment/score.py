@@ -205,10 +205,43 @@ if wide_tables:
         "the columns business users need"
     )
 
-SPACE_DESC_METRIC_PAT = re.compile(r"\bmetric|kpi|revenue|measure|booking|volume|ratio|score|rate|amount|count|spend|cost|fraud|risk\b", re.IGNORECASE)
-SPACE_DESC_DIM_PAT    = re.compile(r"\bdimension|segment|region|categor|by\b|\bproduct\b|\bcustomer\b|\baccount\b|\bchannel\b|\btype\b|\bstatus\b", re.IGNORECASE)
-SPACE_DESC_GRAIN_PAT  = re.compile(r"\bgrain|row|daily|weekly|monthly|refresh|updated|freshness|transaction|aggregated|per\b|event\b|one row\b", re.IGNORECASE)
-SPACE_DESC_USER_PAT   = re.compile(r"\buser|analyst|manager|team|audience|stakeholder|leader|operations|business\b", re.IGNORECASE)
+_DESC_LABEL_MAP = {
+    "metrics":    "key metrics/KPIs",
+    "dimensions": "dimensions/segments",
+    "grain":      "data grain/freshness",
+    "users":      "target users/audience",
+}
+
+def _llm_judge_desc(desc_text):
+    """Ask the LLM whether the description covers the four required elements.
+    Returns a list of missing element labels, or None on failure."""
+    _prompt = f"""Does this Genie space description adequately cover each of the four elements below?
+Reply with ONLY a JSON object — no other text.
+
+Elements:
+1. metrics   — mentions what metrics, KPIs, or measures can be answered
+2. dimensions — mentions what dimensions, segments, or groupings exist
+3. grain     — mentions data grain, event type, or refresh/freshness
+4. users     — mentions intended users or audience
+
+Description: "{desc_text}"
+
+JSON format: {{"metrics": true/false, "dimensions": true/false, "grain": true/false, "users": true/false}}"""
+    try:
+        _r = requests.post(
+            f"{host}/serving-endpoints/{LLM_MODEL}/invocations",
+            headers=headers,
+            json={"messages": [{"role": "user", "content": _prompt}], "max_tokens": 80},
+            timeout=15,
+        )
+        _raw = _r.json()["choices"][0]["message"]["content"] if _r.status_code == 200 else ""
+        _match = re.search(r'\{[^}]+\}', _raw, re.DOTALL)
+        if _match:
+            _verdict = json.loads(_match.group())
+            return [_DESC_LABEL_MAP[k] for k, v in _verdict.items() if not v and k in _DESC_LABEL_MAP]
+    except Exception:
+        pass
+    return None
 
 space_desc = (space.get("description", "") or "").strip()
 if not space_desc:
@@ -216,13 +249,9 @@ if not space_desc:
 elif len(space_desc) < 80:
     a1_flags.append(f"Space description too short ({len(space_desc)} chars) — expand to cover key metrics, dimensions, data grain, and target users")
 else:
-    missing_desc_elements = []
-    if not SPACE_DESC_METRIC_PAT.search(space_desc): missing_desc_elements.append("key metrics/KPIs")
-    if not SPACE_DESC_DIM_PAT.search(space_desc):    missing_desc_elements.append("dimensions/segments")
-    if not SPACE_DESC_GRAIN_PAT.search(space_desc):  missing_desc_elements.append("data grain/freshness")
-    if not SPACE_DESC_USER_PAT.search(space_desc):   missing_desc_elements.append("target users/audience")
-    if missing_desc_elements:
-        a1_flags.append(f"Space description missing: {', '.join(missing_desc_elements)} — follow template: purpose + Key Metrics + Dimensions + Data grain + Target Users")
+    _missing = _llm_judge_desc(space_desc)
+    if _missing:
+        a1_flags.append(f"Space description missing: {', '.join(_missing)} — follow template: purpose + Key Metrics + Dimensions + Data grain + Target Users")
 
 # ── Area 2: Metadata Quality ──────────────────────────────────────────────────
 total_cols, described_cols = 0, 0
