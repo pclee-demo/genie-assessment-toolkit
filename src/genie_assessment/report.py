@@ -200,7 +200,10 @@ for area, score, label, area_flags in zip(areas, scores, labels, flags):
         md_lines.append("✅ No issues found.")
     else:
         for flag in area_flags:
-            md_lines.append(f"- ⚠ {flag}")
+            if flag.startswith("✅"):
+                md_lines.append(f"- {flag}")
+            else:
+                md_lines.append(f"- ⚠ {flag}")
 
     # Append matching recommendation inline (rec area is the short name after "N. ")
     _short = area.split(". ", 1)[1] if ". " in area else area

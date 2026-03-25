@@ -154,8 +154,8 @@ for _table_id in table_identifiers:
 
 if metric_views_in_space:
     a0_flags.append(
-        f"Metric Views in space: {', '.join(t.split('.')[-1] for t in metric_views_in_space)} "
-        "— semantic layer (measures, dimensions, filters) is defined at the UC layer ✓"
+        f"✅ Metric Views in space: {', '.join(t.split('.')[-1] for t in metric_views_in_space)} "
+        "— semantic layer (measures, dimensions, filters) is defined at the UC layer"
     )
     if metric_views_in_catalog:
         a0_flags.append(
@@ -303,10 +303,11 @@ enum_missing_dict = []
 for table_id, meta in table_metadata.items():
     if "error" in meta:
         continue
+    _ttype_a2 = meta.get("table_type", "").upper()
     tc = (meta.get("table_comment") or "").strip()
     if not tc:
         tables_no_comment.append(table_id.split(".")[-1])
-    elif len(tc) < 50:
+    elif len(tc) < 50 and _ttype_a2 != "METRIC_VIEW":
         thin_comments.append((table_id.split('.')[-1], len(tc)))
 
     cols = meta.get("columns", [])

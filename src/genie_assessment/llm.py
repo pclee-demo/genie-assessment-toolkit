@@ -118,10 +118,19 @@ if a1 < 3 or len(schemas) > 1:
         "Enable 'Use system tables' widget for richer analysis.)"
     )
 
+    _mv_names = [t.split(".")[-1] for t in metric_views_in_space]
+    _mv_note = (
+        f"\nIMPORTANT: The following tables are Unity Catalog Metric Views: {', '.join(_mv_names)}. "
+        "Metric Views are the UC semantic layer — they define measures, dimensions, and filters centrally "
+        "and are first-class Genie objects. Do NOT recommend removing, consolidating, or treating them as "
+        "duplicates. They should be kept in any space that uses the underlying fact/dim tables they reference.\n"
+        if _mv_names else ""
+    )
+
     domain_prompt = f"""You are a Databricks data domain expert helping a customer improve their Genie space.
 
 The Genie space "{space_name_str}" currently has {table_count} tables. Best practice is ≤10 tightly scoped tables per space.
-
+{_mv_note}
 Table metadata:
 {metadata_block}
 {lineage_section}
@@ -139,7 +148,8 @@ Output format — use EXACTLY this structure, no extra commentary:
 [Bullet list of join dependencies that span proposed spaces, or "None identified."]
 
 #### Tables to Review
-[Bullet list of redundant or out-of-scope tables with a one-line reason, or "None identified."]
+[Bullet list of redundant or out-of-scope tables with a one-line reason, or "None identified."
+Do NOT list Metric Views here — they are intentional semantic layer objects, not candidates for removal.]
 
 Be concise. Plain business language only."""
 

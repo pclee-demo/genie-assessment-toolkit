@@ -128,7 +128,7 @@ if a3 == 1:
         items_a3 += [
             f"SQL Queries tab: {'no examples' if sql_count == 0 else f'only {sql_count} example(s)'} — "
             "target 10–15; start with aggregation, date filter, JOIN, top-N, and period-over-period",
-            "Use the SQL Query Templates below to bootstrap examples quickly — every example must be a complete, tested query",
+            "Use the SQL Query Examples section below to bootstrap examples quickly — every example must be a complete, tested query",
         ]
     if instr_sub == 1:
         items_a3 += [
@@ -146,7 +146,7 @@ if a3 == 1:
 elif a3 == 2:
     items_a3 = []
     if sql_sub < 3:
-        missing_str = (", ".join(missing_types) + " — use the SQL Templates below") if missing_types else "review against the full query-pattern matrix"
+        missing_str = (", ".join(missing_types) + " — see the SQL Query Examples section below") if missing_types else "review against the full query-pattern matrix"
         items_a3 += [
             (f"SQL Queries tab: add {max(0, 10 - sql_count)} more to reach 10 (target 10–15)"
              if sql_count < 10 else
