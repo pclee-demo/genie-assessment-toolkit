@@ -187,10 +187,11 @@ List 15 realistic questions a business user would ask, numbered 1–15. After ea
 List the 5 most important questions from the list above (copy them verbatim), numbered 1–5. These will be used as Genie benchmarks.
 
 ### KPIs
-List 5 KPIs a business user would want to monitor. For each KPI use EXACTLY this format (no bold or italic anywhere in this section):
-KPI name: <short business name>
-Description: <one sentence>
-Formula hint: <plain-English formula, e.g. "COUNT of distinct customers with at least one transaction in the last 30 days">
+List 5 KPIs a business user would want to monitor. For each KPI use EXACTLY this markdown format with a blank line between each KPI:
+
+**KPI name:** <short business name>
+**Description:** <one sentence>
+**Formula hint:** <plain-English formula, e.g. "COUNT of distinct customers with at least one transaction in the last 30 days">
 
 Use plain business language. Do not write SQL. Do not reference column names directly — use business-friendly terms.
 Do not include any offers, follow-up suggestions, or questions at the end of your response."""
