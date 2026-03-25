@@ -713,7 +713,25 @@ if alignment_gaps:
 
 # ── Business abbreviation audit (appended to Area 2 flags) ───────────────────
 # Runs here so synonyms_ex and instr_text_blob are available (both defined in Area 3)
-KNOWN_BUSINESS_ABBREVS = {
+#
+# Detection: pattern-based — any 2–5 char token from a column name that isn't
+# in the exclusion list of common non-abbreviation short words.
+# Labels: a smaller known-terms dict is used only to enrich the flag message
+# with the full term; unknown abbreviations are still flagged, just without a label.
+
+_ABBREV_EXCLUSIONS = {
+    "id", "is", "at", "by", "on", "in", "of", "to", "no", "up",
+    "dt", "ts", "key", "val", "num", "seq", "ref", "cnt", "max",
+    "min", "avg", "sum", "pct", "amt", "qty", "date", "time",
+    "name", "type", "code", "flag", "rank", "rate", "tier", "area",
+    "note", "text", "desc", "json", "uuid", "hash", "user", "role",
+    "item", "unit", "cost", "size", "list", "last", "next", "prev",
+    "from", "true", "null", "data", "info", "meta", "tags", "src",
+    "raw", "new", "old", "all", "any", "end", "set", "map", "log",
+}
+
+# Known-terms dict — display labels only, not used for detection
+_ABBREV_LABELS = {
     "rm": "Relationship Manager", "kpi": "Key Performance Indicator",
     "aum": "Assets Under Management", "nps": "Net Promoter Score",
     "arr": "Annual Recurring Revenue", "mrr": "Monthly Recurring Revenue",
@@ -723,34 +741,44 @@ KNOWN_BUSINESS_ABBREVS = {
     "ebitda": "EBITDA", "roe": "Return on Equity", "roa": "Return on Assets",
     "nim": "Net Interest Margin", "fum": "Funds Under Management",
     "nav": "Net Asset Value", "glp": "Gross Loan Portfolio", "npl": "Non-Performing Loan",
-    "nrr": "Net Revenue Retention",
+    "nrr": "Net Revenue Retention", "sku": "Stock Keeping Unit",
+    "gmv": "Gross Merchandise Value", "aov": "Average Order Value",
+    "dau": "Daily Active Users", "mau": "Monthly Active Users",
+    "ctr": "Click-Through Rate", "cvr": "Conversion Rate",
+    "rpm": "Revenue Per Mille", "cpv": "Cost Per View",
 }
-_ABBREV_TOKEN_PAT = re.compile(r'\b([a-z]{2,6})\b')
+
 _found_abbrevs = set()
 for _tid, _meta in table_metadata.items():
     if "error" in _meta:
         continue
     for _col in _meta.get("columns", []):
-        _col_lower = _col.get("name", "").lower().replace("_", " ")
-        for _token in _ABBREV_TOKEN_PAT.findall(_col_lower):
-            if _token in KNOWN_BUSINESS_ABBREVS:
+        for _token in _col.get("name", "").lower().split("_"):
+            if 2 <= len(_token) <= 5 and _token not in _ABBREV_EXCLUSIONS:
                 _found_abbrevs.add(_token)
 
 _instr_blob_lower = instr_text_blob.lower()
 _synonym_blob     = " ".join(synonyms_ex).lower()
-unmapped_abbrevs  = []
+unmapped_abbrevs  = []  # list of (abbrev_upper, label_or_none)
 for _abbrev in sorted(_found_abbrevs):
-    _full = KNOWN_BUSINESS_ABBREVS[_abbrev].lower().split("/")[0].strip()
-    if _abbrev not in _synonym_blob and _full not in _synonym_blob \
-       and _abbrev not in _instr_blob_lower and _full not in _instr_blob_lower:
-        unmapped_abbrevs.append(_abbrev.upper())
+    _label = _ABBREV_LABELS.get(_abbrev)
+    # Check coverage: abbrev itself, or its known full term if we have one
+    _covered = _abbrev in _synonym_blob or _abbrev in _instr_blob_lower
+    if not _covered and _label:
+        _full = _label.lower().split("/")[0].strip()
+        _covered = _full in _synonym_blob or _full in _instr_blob_lower
+    if not _covered:
+        unmapped_abbrevs.append((_abbrev.upper(), _label))
 
 if unmapped_abbrevs:
+    _abbrev_parts = [
+        f"{a} ({lbl})" if lbl else a
+        for a, lbl in unmapped_abbrevs
+    ]
     a2_flags.append(
         f"Business abbreviations in column names with no synonym or instruction mapping "
-        f"({len(unmapped_abbrevs)}): {', '.join(unmapped_abbrevs)} — "
-        "add a SQL Expression Synonym for each so Genie resolves full terms "
-        "(e.g. 'Relationship Manager' → `rm_id`), "
+        f"({len(unmapped_abbrevs)}): {', '.join(_abbrev_parts)} — "
+        "add a SQL Expression Synonym for each so Genie resolves full terms, "
         "or define them in Instructions > Business Terms"
     )
 
