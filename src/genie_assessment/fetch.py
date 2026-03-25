@@ -26,7 +26,32 @@ if "error" in space:
 instructions_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/instructions")
 all_instructions  = instructions_resp.get("instructions", [])
 text_instructions = [i for i in all_instructions if i.get("instruction_type") == "TEXT_INSTRUCTION"]
-sql_instructions  = [i for i in all_instructions if i.get("instruction_type") in ("SQL_INSTRUCTION", "SQL_SNIPPET")]
+sql_instructions  = [i for i in all_instructions if i.get("instruction_type") == "SQL_INSTRUCTION"]
+
+# SQL Expressions (Measures, Dimensions, Filters, Synonyms) — stored as SQL_SNIPPET items
+# Each item's content is a JSON string; parse into a normalised list for score.py
+sql_expressions = []
+for _i in all_instructions:
+    if _i.get("instruction_type") != "SQL_SNIPPET":
+        continue
+    try:
+        _c = json.loads(_i.get("content", "{}"))
+    except Exception:
+        _c = {}
+    _raw_type = _c.get("type", "")
+    _name = _c.get("display_name") or _c.get("alias", "")
+    _code = _c.get("code", "")
+    if "MEASURE" in _raw_type:
+        _expr_type = "MEASURE"
+    elif "DIMENSION" in _raw_type:
+        _expr_type = "DIMENSION"
+    elif "FILTER" in _raw_type:
+        _expr_type = "FILTER"
+    else:
+        _expr_type = _raw_type
+    sql_expressions.append({"expression_type": _expr_type, "name": _name, "expression": _code})
+    for _syn in _c.get("synonyms", []):
+        sql_expressions.append({"expression_type": "SYNONYM", "name": _syn, "expression": ""})
 
 
 # ── Sample questions + benchmarks ─────────────────────────────────────────────
@@ -147,8 +172,8 @@ trusted_answers = (
 
 print(f"✓ Space:         {space.get('display_name', space.get('title', ''))}")
 print(f"  Tables:        {len(table_identifiers)}")
-print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} SQL examples")
+print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} SQL queries, {len(sql_expressions)} SQL expressions, {len(genie_joins)} joins")
 print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks")
 print(f"  Trusted Ans:   {len(trusted_answers)}")
-print(f"  Joins:         {len(genie_joins)}  |  PK/FK tables: {len(pk_fk_tables)}/{len(table_identifiers)}")
+print(f"  PK/FK tables:  {len(pk_fk_tables)}/{len(table_identifiers)}")
 print(f"  Space ACL:     {len(space_acl)} entries  |  Warehouse ACL: {len(warehouse_acl)} entries")

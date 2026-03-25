@@ -657,51 +657,39 @@ elif metric_views_in_catalog:
     ]
 
 else:
-    sql_expr_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/sql-expressions")
-    if "error" in sql_expr_resp:
-        sql_expr_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/sql_expressions")
+    # sql_expressions is pre-parsed from SQL_SNIPPET items in fetch.py
+    expressions = sql_expressions if "sql_expressions" in dir() else []
+    AGG_CONTENT_PAT  = re.compile(r"\b(SUM|COUNT|AVG|MAX|MIN|try_divide)\s*\(", re.IGNORECASE)
+    COND_CONTENT_PAT = re.compile(r"\bWHERE\b|\bAND\b|\bOR\b|=\s*'", re.IGNORECASE)
 
-    if "error" in sql_expr_resp:
-        a7, a7l  = 1, "Poor"
-        a7_flags = [
-            "No Metric Views found and SQL Expressions API is not reachable — "
-            "manually verify Configuration > SQL Expressions in the Genie UI: "
-            "add Measures (KPI formulas), Dimensions (column aliases), "
-            "Filters (metric-mart identifiers), and Synonyms (abbreviations)"
-        ]
-    else:
-        expressions = sql_expr_resp.get("sql_expressions") or sql_expr_resp.get("expressions") or []
-        AGG_CONTENT_PAT  = re.compile(r"\b(SUM|COUNT|AVG|MAX|MIN|try_divide)\s*\(", re.IGNORECASE)
-        COND_CONTENT_PAT = re.compile(r"\bWHERE\b|\bAND\b|\bOR\b|=\s*'", re.IGNORECASE)
-
-        for e in expressions:
-            etype   = (e.get("expression_type") or e.get("type") or "").upper()
-            content = e.get("expression") or e.get("sql") or e.get("content") or ""
-            name    = e.get("name") or e.get("title") or ""
-            if etype in ("MEASURE","AGGREGATION") or (not etype and AGG_CONTENT_PAT.search(content)):
-                measures_ex.append(name)
-            elif etype in ("FILTER","CONDITIONAL") or (not etype and COND_CONTENT_PAT.search(content) and not AGG_CONTENT_PAT.search(content)):
-                filters_ex.append(name)
-            elif etype == "SYNONYM":
-                synonyms_ex.append(name)
-            else:
-                dimensions_ex.append(name)
-
-        expr_count = len(expressions)
-        if expr_count >= 3 and measures_ex: a7, a7l = 3, "Good"
-        elif expr_count >= 1:               a7, a7l = 2, "OK"
-        else:                               a7, a7l = 1, "Poor"
-
-        a7_flags = []
-        if expr_count == 0:
-            a7_flags.append("No Metric Views in space and no SQL Expressions defined — add Measures, Dimensions, Filters, and Synonyms")
+    for e in expressions:
+        etype   = (e.get("expression_type") or e.get("type") or "").upper()
+        content = e.get("expression") or e.get("sql") or e.get("content") or ""
+        name    = e.get("name") or e.get("title") or ""
+        if etype in ("MEASURE","AGGREGATION") or (not etype and AGG_CONTENT_PAT.search(content)):
+            measures_ex.append(name)
+        elif etype in ("FILTER","CONDITIONAL") or (not etype and COND_CONTENT_PAT.search(content) and not AGG_CONTENT_PAT.search(content)):
+            filters_ex.append(name)
+        elif etype == "SYNONYM":
+            synonyms_ex.append(name)
         else:
-            if not measures_ex:
-                a7_flags.append("No Measure expressions — define SUM/ratio formulas for key KPIs")
-            if not synonyms_ex:
-                a7_flags.append("No Synonyms defined — add abbreviations and alternate names to reduce clarification prompts")
-            if expr_count < 3:
-                a7_flags.append(f"Only {expr_count} SQL Expression(s) — add more Measures, Dimensions, Filters, and Synonyms")
+            dimensions_ex.append(name)
+
+    expr_count = len(expressions)
+    if expr_count >= 3 and measures_ex: a7, a7l = 3, "Good"
+    elif expr_count >= 1:               a7, a7l = 2, "OK"
+    else:                               a7, a7l = 1, "Poor"
+
+    a7_flags = []
+    if expr_count == 0:
+        a7_flags.append("No Metric Views in space and no SQL Expressions defined — add Measures, Dimensions, Filters, and Synonyms")
+    else:
+        if not measures_ex:
+            a7_flags.append("No Measure expressions — define SUM/ratio formulas for key KPIs")
+        if not synonyms_ex:
+            a7_flags.append("No Synonyms defined — add abbreviations and alternate names to reduce clarification prompts")
+        if expr_count < 3:
+            a7_flags.append(f"Only {expr_count} SQL Expression(s) — add more Measures, Dimensions, Filters, and Synonyms")
 
 # ── Business abbreviation audit (Area 7 addendum) ────────────────────────────
 # Checks whether business abbreviations found in column names have synonym/instruction mappings
