@@ -137,6 +137,11 @@ if a3 == 1:
             "Structure with 4 sections: Role/behavior, Critical Rules/default filters, Business Terms/synonyms, Date Handling",
             "Keep text ≤100 lines; reserve it for rules Genie cannot infer from UC metadata or SQL examples — move metrics/joins to their own tabs",
         ]
+    if not metric_views_in_space and expr_count == 0:
+        items_a3 += [
+            "SQL Expressions tab: no semantic layer defined — add Measures, Synonyms, Dimensions, Filters; "
+            "or create UC Metric Views (preferred — defined once at the data layer)",
+        ]
     recs.append(("Genie Instructions Configuration", SEVERITY[1], items_a3))
 elif a3 == 2:
     items_a3 = []
@@ -163,6 +168,17 @@ elif a3 == 2:
     if table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
         items_a3 += [
             f"Joins tab: verify all {table_count} table relationships are configured — only {join_count} join(s) found",
+        ]
+    if not metric_views_in_space and expr_count == 0:
+        items_a3 += [
+            "SQL Expressions tab: no semantic layer defined — add Measure expressions for key KPIs "
+            "(SUM/ratio formulas) and Synonyms for abbreviations; "
+            "or create UC Metric Views which Genie reads natively",
+        ]
+    elif not metric_views_in_space and (not measures_ex or not synonyms_ex):
+        items_a3 += [
+            *(["SQL Expressions tab: add Measure expressions for key KPIs — none defined yet"] if not measures_ex else []),
+            *(["SQL Expressions tab: add Synonyms for abbreviations and alternate business terms"] if not synonyms_ex else []),
         ]
     recs.append(("Genie Instructions Configuration", SEVERITY[2], items_a3))
 
@@ -204,35 +220,6 @@ elif a6 == 2:
         *(["Add gold-standard SQL to the " + str(len(bm_missing_sql)) + " benchmark(s) that are missing it"] if bm_missing_sql else []),
         "Target 80%+ pass rate before onboarding business users",
     ]))
-
-# ── Area 7: Semantic Layer ────────────────────────────────────────────────────
-if a7 < 3:
-    if metric_views_in_catalog and not metric_views_in_space:
-        recs.append(("Semantic Layer — Metric Views", SEVERITY[2], [
-            f"Metric View(s) found in your catalog but not added to this space: {', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:5])}",
-            "Add them to the space — Metric Views define measures, dimensions, and filters at the UC layer and are read directly by Genie",
-            "This is the preferred approach: defining your semantic layer in UC rather than duplicating it in Genie SQL Expressions",
-        ]))
-    elif a7 == 1:
-        recs.append(("Semantic Layer — SQL Expressions", SEVERITY[1], [
-            "No semantic layer detected — Genie has no reusable definitions for your KPIs, dimensions, or business terminology",
-            "PREFERRED: Create Metric Views in Unity Catalog (measures, dimensions, filters defined at the data layer)",
-            "ALTERNATIVE: Define SQL Expressions in Genie — Configuration > SQL Expressions:",
-            "  • Measures: KPI formulas (e.g. Total Revenue = SUM(sales_fact.amount))",
-            "  • Dimensions: column aliases (e.g. Sales Region = sales_fact.region)",
-            "  • Filters: metric-mart identifiers (e.g. metric_alias = 'Revenue')",
-            "  • Synonyms: abbreviations (e.g. ASP, Average Selling Price, Avg Price)",
-        ]))
-    elif a7 == 2:
-        recs.append(("Semantic Layer — SQL Expressions", SEVERITY[2], [
-            f"Partial semantic layer — {expr_count} SQL Expression(s) defined but gaps remain (see flags above)",
-            *(["Add Measure expressions for key KPIs — currently none defined"] if not measures_ex else []),
-            *(["Add Synonyms for common abbreviations to reduce clarification prompts"] if not synonyms_ex else []),
-            *(["Business abbreviations in column names with no synonym mapping: " + ", ".join(unmapped_abbrevs)
-               + " — add a Synonym SQL Expression for each so Genie resolves user queries using full terms "
-               "(Configuration > SQL Expressions > Synonym)"] if unmapped_abbrevs else []),
-            "Aim for at least 5 expressions covering your most-used business terms before launch",
-        ]))
 
 # ── Print recommendations ─────────────────────────────────────────────────────
 if recs:

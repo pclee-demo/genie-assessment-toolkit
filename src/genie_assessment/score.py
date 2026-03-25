@@ -128,6 +128,48 @@ if space_not_shared or (tables_no_grant and len(tables_no_grant) >= max(1, table
 elif warehouse_locked or tables_no_grant:
     if a0 == 3: a0, a0l = 2, "OK"
 
+# Metric Views — UC semantic layer objects (positive signal in Area 0)
+space_table_set         = set(t.lower() for t in table_identifiers)
+metric_views_in_space   = []
+metric_views_in_catalog = []
+for _table_id in table_identifiers:
+    _parts = _table_id.split(".")
+    if len(_parts) != 3:
+        continue
+    _catalog, _schema, _ = _parts
+    try:
+        _mv_rows = spark.sql(f"""
+            SELECT CONCAT('{_catalog}', '.', table_schema, '.', table_name) AS full_name
+            FROM `{_catalog}`.information_schema.tables
+            WHERE table_schema = '{_schema}' AND table_type = 'METRIC_VIEW'
+        """).collect()
+        for _row in _mv_rows:
+            _fn = _row["full_name"].lower()
+            if _fn in space_table_set:
+                if _fn not in metric_views_in_space:   metric_views_in_space.append(_fn)
+            else:
+                if _fn not in metric_views_in_catalog: metric_views_in_catalog.append(_fn)
+    except Exception:
+        pass
+
+if metric_views_in_space:
+    a0_flags.append(
+        f"Metric Views in space: {', '.join(t.split('.')[-1] for t in metric_views_in_space)} "
+        "— semantic layer (measures, dimensions, filters) is defined at the UC layer ✓"
+    )
+    if metric_views_in_catalog:
+        a0_flags.append(
+            f"Additional Metric Views in catalog not added to space: "
+            f"{', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:3])} "
+            "— add them if they cover relevant metrics for this space"
+        )
+elif metric_views_in_catalog:
+    a0_flags.append(
+        f"Metric Views detected in catalog but not in this space: "
+        f"{', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:5])} "
+        "— add to use the UC semantic layer instead of maintaining manual SQL Expressions"
+    )
+
 # ── Area 1: Table & Space Curation ───────────────────────────────────────────
 table_count = len(table_identifiers)
 schemas     = list(set(".".join(t.split(".")[:2]) for t in table_identifiers))
@@ -364,6 +406,26 @@ if restricted_tables:
         "users querying filtered columns may get incomplete results without explanation"
     )
 
+# ── SQL Expressions — pre-parse (used by Area 3 flags and abbreviation audit) ─
+measures_ex   = []
+filters_ex    = []
+dimensions_ex = []
+synonyms_ex   = list(sql_expression_synonyms) if "sql_expression_synonyms" in dir() else []
+_expressions  = sql_expressions if "sql_expressions" in dir() else []
+_AGG_PAT      = re.compile(r"\b(SUM|COUNT|AVG|MAX|MIN|try_divide)\s*\(", re.IGNORECASE)
+_COND_PAT     = re.compile(r"\bWHERE\b|\bAND\b|\bOR\b|=\s*'", re.IGNORECASE)
+for _e in _expressions:
+    _etype   = (_e.get("expression_type") or _e.get("type") or "").upper()
+    _content = _e.get("expression") or _e.get("sql") or _e.get("content") or ""
+    _name    = _e.get("name") or _e.get("title") or ""
+    if _etype in ("MEASURE", "AGGREGATION") or (not _etype and _AGG_PAT.search(_content)):
+        measures_ex.append(_name)
+    elif _etype in ("FILTER", "CONDITIONAL") or (not _etype and _COND_PAT.search(_content) and not _AGG_PAT.search(_content)):
+        filters_ex.append(_name)
+    else:
+        dimensions_ex.append(_name)
+expr_count = len(_expressions)
+
 # ── Area 3: Genie Instructions Configuration ──────────────────────────────────
 # Covers all four Configuration tabs: SQL Queries, Text Instructions, Joins, SQL Expressions
 
@@ -570,6 +632,23 @@ if table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
         "verify all table relationships are configured in Configuration > Joins"
     )
 
+# SQL Expressions tab — no penalty when Metric Views cover the semantic layer
+if metric_views_in_space:
+    pass  # semantic layer handled at UC level — SQL Expressions not required
+elif expr_count == 0:
+    a3_flags.append(
+        "SQL Expressions tab: no Measures, Dimensions, Filters, or Synonyms defined — "
+        "add Measure expressions for key KPIs (SUM/ratio formulas) and "
+        "Synonyms for abbreviations and alternate business terms"
+    )
+else:
+    if not measures_ex:
+        a3_flags.append("SQL Expressions tab: no Measure expressions — define SUM/ratio formulas for key KPIs")
+    if not synonyms_ex:
+        a3_flags.append("SQL Expressions tab: no Synonyms defined — add abbreviations and alternate names to reduce clarification prompts")
+    if expr_count < 3:
+        a3_flags.append(f"SQL Expressions tab: only {expr_count} expression(s) — add more Measures, Dimensions, Filters, and Synonyms")
+
 # ── Area 4: merged into Area 3 ────────────────────────────────────────────────
 # These variables are computed here for use by the LLM instructions-draft generator (llm.py)
 SCHEMA_DUMP = [
@@ -630,6 +709,49 @@ if alignment_gaps:
     )
     if a3 == 3:
         a3, a3l = 2, "OK"
+
+# ── Business abbreviation audit (appended to Area 2 flags) ───────────────────
+# Runs here so synonyms_ex and instr_text_blob are available (both defined in Area 3)
+KNOWN_BUSINESS_ABBREVS = {
+    "rm": "Relationship Manager", "kpi": "Key Performance Indicator",
+    "aum": "Assets Under Management", "nps": "Net Promoter Score",
+    "arr": "Annual Recurring Revenue", "mrr": "Monthly Recurring Revenue",
+    "ltv": "Lifetime Value", "cac": "Customer Acquisition Cost",
+    "ytd": "Year-to-Date", "mtd": "Month-to-Date", "qtd": "Quarter-to-Date",
+    "yoy": "Year-over-Year", "mom": "Month-over-Month", "qoq": "Quarter-over-Quarter",
+    "ebitda": "EBITDA", "roe": "Return on Equity", "roa": "Return on Assets",
+    "nim": "Net Interest Margin", "fum": "Funds Under Management",
+    "nav": "Net Asset Value", "glp": "Gross Loan Portfolio", "npl": "Non-Performing Loan",
+    "nrr": "Net Revenue Retention",
+}
+_ABBREV_TOKEN_PAT = re.compile(r'\b([a-z]{2,6})\b')
+_found_abbrevs = set()
+for _tid, _meta in table_metadata.items():
+    if "error" in _meta:
+        continue
+    for _col in _meta.get("columns", []):
+        _col_lower = _col.get("name", "").lower().replace("_", " ")
+        for _token in _ABBREV_TOKEN_PAT.findall(_col_lower):
+            if _token in KNOWN_BUSINESS_ABBREVS:
+                _found_abbrevs.add(_token)
+
+_instr_blob_lower = instr_text_blob.lower()
+_synonym_blob     = " ".join(synonyms_ex).lower()
+unmapped_abbrevs  = []
+for _abbrev in sorted(_found_abbrevs):
+    _full = KNOWN_BUSINESS_ABBREVS[_abbrev].lower().split("/")[0].strip()
+    if _abbrev not in _synonym_blob and _full not in _synonym_blob \
+       and _abbrev not in _instr_blob_lower and _full not in _instr_blob_lower:
+        unmapped_abbrevs.append(_abbrev.upper())
+
+if unmapped_abbrevs:
+    a2_flags.append(
+        f"Business abbreviations in column names with no synonym or instruction mapping "
+        f"({len(unmapped_abbrevs)}): {', '.join(unmapped_abbrevs)} — "
+        "add a SQL Expression Synonym for each so Genie resolves full terms "
+        "(e.g. 'Relationship Manager' → `rm_id`), "
+        "or define them in Instructions > Business Terms"
+    )
 
 # ── Area 5: Sample Questions ──────────────────────────────────────────────────
 sq_count = len(sample_questions)
@@ -712,164 +834,25 @@ if bm_missing_sql:
 if bm_hardcoded:
     a6_flags.append(f"Hardcoded values in benchmark SQL: {'; '.join(bm_hardcoded[:2])} — use representative but generalisable queries")
 
-# ── Area 7: Semantic Layer (Metric Views / SQL Expressions) ───────────────────
-expr_count   = 0
-measures_ex  = []  # initialise so recommend.py can always reference these
-synonyms_ex  = list(sql_expression_synonyms) if "sql_expression_synonyms" in dir() else []
-filters_ex   = []
-dimensions_ex = []
-
-space_table_set         = set(t.lower() for t in table_identifiers)
-metric_views_in_space   = []
-metric_views_in_catalog = []
-
-for table_id in table_identifiers:
-    parts = table_id.split(".")
-    if len(parts) != 3:
-        continue
-    catalog, schema, _ = parts
-    try:
-        mv_rows = spark.sql(f"""
-            SELECT CONCAT('{catalog}', '.', table_schema, '.', table_name) AS full_name
-            FROM `{catalog}`.information_schema.tables
-            WHERE table_schema = '{schema}' AND table_type = 'METRIC_VIEW'
-        """).collect()
-        for row in mv_rows:
-            fn = row["full_name"].lower()
-            if fn in space_table_set:
-                if fn not in metric_views_in_space:   metric_views_in_space.append(fn)
-            else:
-                if fn not in metric_views_in_catalog: metric_views_in_catalog.append(fn)
-    except Exception:
-        pass
-
-if metric_views_in_space:
-    a7, a7l = 3, "Good"
-    a7_flags = [
-        f"Metric View(s) in space: {', '.join(t.split('.')[-1] for t in metric_views_in_space)}"
-        " — semantic layer (measures, dimensions, filters) is defined at the UC layer ✓"
-    ]
-    if metric_views_in_catalog:
-        a7_flags.append(
-            f"Additional Metric Views found in catalog but not added to space: "
-            f"{', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:3])}"
-            " — add them if they cover relevant metrics"
-        )
-
-elif metric_views_in_catalog:
-    a7, a7l = 2, "OK"
-    a7_flags = [
-        f"Metric Views detected in catalog but not added to this space: "
-        f"{', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:5])}"
-        " — add them to the space to use the UC semantic layer instead of manual SQL Expressions"
-    ]
-
-else:
-    # sql_expressions is pre-parsed from SQL_SNIPPET items in fetch.py
-    expressions = sql_expressions if "sql_expressions" in dir() else []
-    AGG_CONTENT_PAT  = re.compile(r"\b(SUM|COUNT|AVG|MAX|MIN|try_divide)\s*\(", re.IGNORECASE)
-    COND_CONTENT_PAT = re.compile(r"\bWHERE\b|\bAND\b|\bOR\b|=\s*'", re.IGNORECASE)
-
-    for e in expressions:
-        etype   = (e.get("expression_type") or e.get("type") or "").upper()
-        content = e.get("expression") or e.get("sql") or e.get("content") or ""
-        name    = e.get("name") or e.get("title") or ""
-        if etype in ("MEASURE","AGGREGATION") or (not etype and AGG_CONTENT_PAT.search(content)):
-            measures_ex.append(name)
-        elif etype in ("FILTER","CONDITIONAL") or (not etype and COND_CONTENT_PAT.search(content) and not AGG_CONTENT_PAT.search(content)):
-            filters_ex.append(name)
-        else:
-            dimensions_ex.append(name)
-
-    expr_count = len(expressions)
-    if expr_count >= 3 and measures_ex: a7, a7l = 3, "Good"
-    elif expr_count >= 1:               a7, a7l = 2, "OK"
-    else:                               a7, a7l = 1, "Poor"
-
-    a7_flags = []
-    if expr_count == 0:
-        a7_flags.append("No Metric Views in space and no SQL Expressions defined — add Measures, Dimensions, Filters, and Synonyms")
-    else:
-        if not measures_ex:
-            a7_flags.append("No Measure expressions — define SUM/ratio formulas for key KPIs")
-        if not synonyms_ex:
-            a7_flags.append("No Synonyms defined — add abbreviations and alternate names to reduce clarification prompts")
-        if expr_count < 3:
-            a7_flags.append(f"Only {expr_count} SQL Expression(s) — add more Measures, Dimensions, Filters, and Synonyms")
-
-# ── Business abbreviation audit (Area 7 addendum) ────────────────────────────
-# Checks whether business abbreviations found in column names have synonym/instruction mappings
-KNOWN_BUSINESS_ABBREVS = {
-    "rm": "Relationship Manager", "kpi": "Key Performance Indicator",
-    "aum": "Assets Under Management", "nps": "Net Promoter Score",
-    "arr": "Annual Recurring Revenue", "mrr": "Monthly Recurring Revenue",
-    "ltv": "Lifetime Value", "cac": "Customer Acquisition Cost",
-    "ytd": "Year-to-Date", "mtd": "Month-to-Date", "qtd": "Quarter-to-Date",
-    "yoy": "Year-over-Year", "mom": "Month-over-Month", "qoq": "Quarter-over-Quarter",
-    "ebitda": "EBITDA", "roe": "Return on Equity", "roa": "Return on Assets",
-    "nim": "Net Interest Margin", "fum": "Funds Under Management",
-    "nav": "Net Asset Value", "glp": "Gross Loan Portfolio", "npl": "Non-Performing Loan",
-    "nrr": "Net Revenue Retention", "arr": "Annual Recurring Revenue",
-}
-
-ABBREV_TOKEN_PAT = re.compile(r'\b([a-z]{2,6})\b')
-found_abbrevs = set()
-for table_id, meta in table_metadata.items():
-    if "error" in meta:
-        continue
-    for col in meta.get("columns", []):
-        col_lower = col.get("name", "").lower().replace("_", " ")
-        for token in ABBREV_TOKEN_PAT.findall(col_lower):
-            if token in KNOWN_BUSINESS_ABBREVS:
-                found_abbrevs.add(token)
-
-instr_text_blob = " ".join(i.get("content", "") for i in text_instructions).lower()
-synonym_blob    = " ".join(synonyms_ex).lower()
-
-unmapped_abbrevs = []
-for abbrev in sorted(found_abbrevs):
-    full_term_lower = KNOWN_BUSINESS_ABBREVS[abbrev].lower().split("/")[0].strip()
-    in_synonyms = abbrev in synonym_blob or full_term_lower in synonym_blob
-    in_instrs   = abbrev in instr_text_blob or full_term_lower in instr_text_blob
-    if not in_synonyms and not in_instrs:
-        unmapped_abbrevs.append(abbrev.upper())
-
-if unmapped_abbrevs:
-    a7_flags.append(
-        f"Business abbreviations in column names with no synonym or instruction mapping "
-        f"({len(unmapped_abbrevs)}): {', '.join(unmapped_abbrevs)} — "
-        "add a SQL Expression Synonym for each (Configuration > SQL Expressions > Synonym) "
-        "so Genie resolves queries using full terms (e.g. 'Relationship Manager' → rm_id), "
-        "or define them in Instructions > Business Terms"
-    )
-    if a7 == 3 and len(unmapped_abbrevs) >= 2:
-        a7, a7l = 2, "OK"
+# ── Area 7: retired — checks distributed to Areas 0, 2, and 3 ────────────────
+a7, a7l, a7_flags = 0, "N/A", []
 
 # ── Verdict ───────────────────────────────────────────────────────────────────
-scores  = [a0, a1, a2, a3, a5, a6, a7]
-labels  = [a0l, a1l, a2l, a3l, a5l, a6l, a7l]
+scores  = [a0, a1, a2, a3, a5, a6]
+labels  = [a0l, a1l, a2l, a3l, a5l, a6l]
 areas   = ["0. Data & UC Readiness", "1. Table & Space Curation", "2. Metadata Quality",
            "3. Genie Instructions Configuration", "4. Sample Questions",
-           "5. Benchmarks", "6. Semantic Layer"]
-flags   = [a0_flags, a1_flags, a2_flags, a3_flags, a5_flags, a6_flags, a7_flags]
+           "5. Benchmarks"]
+flags   = [a0_flags, a1_flags, a2_flags, a3_flags, a5_flags, a6_flags]
 
 scored_total = sum(s for s, l in zip(scores, labels) if l != "N/A")
 max_total    = 3 * sum(1 for l in labels if l != "N/A")
 total        = scored_total
 
-if max_total == 24:
-    if total >= 21:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
-    elif total >= 15: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
-    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
-elif max_total == 21:
-    if total >= 18:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
-    elif total >= 13: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
-    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
-else:
-    pct = total / max_total if max_total else 0
-    if pct >= 0.83:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
-    elif pct >= 0.61: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
-    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
+pct = total / max_total if max_total else 0
+if pct >= 0.83:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
+elif pct >= 0.61: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
+else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
 
 # ── Per-area minimums — cap verdict if any critical area is Poor ───────────────
 BLOCKER_AREAS = {"0. Data & UC Readiness", "2. Metadata Quality", "5. Benchmarks"}
@@ -885,7 +868,7 @@ if blocker_fails and verdict == "PRODUCTION READY":
         "Resolve these before onboarding business users"
     )
 
-total_str = f"{total}/{max_total}" + (" (Area 7 N/A)" if max_total < 24 and max_total >= 21 else "" if max_total == 24 else " (some areas N/A)")
+total_str = f"{total}/{max_total}" + ("" if max_total == 18 else " (some areas N/A)")
 
 # ── Print scorecard ───────────────────────────────────────────────────────────
 BAR = {3: "███ Good", 2: "██░ OK  ", 1: "█░░ Poor"}
