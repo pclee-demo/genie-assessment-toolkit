@@ -167,14 +167,7 @@ for table_id in table_identifiers:
     except Exception:
         table_grants[table_id] = None  # None = insufficient privilege to check
 
-# Cleaned space name — strip Databricks clone/template artifacts:
-#   "(Clone) Foo Bar (some-template-slug)" → "Foo Bar"
-space_name = space.get("display_name", space.get("title", "this space"))
-space_name = re.sub(r'^\s*\(Clone\)\s*', '', space_name, flags=re.IGNORECASE).strip()
-space_name = re.sub(r'\s*\([a-z0-9][a-z0-9 _-]*\)\s*$', '', space_name, flags=re.IGNORECASE).strip()
-space_name = space_name or "this space"
-
-print(f"✓ Space:         {space_name}")
+print(f"✓ Space:         {space.get('display_name', space.get('title', ''))}")
 print(f"  Tables:        {len(table_identifiers)}")
 print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} SQL queries, {len(sql_expressions)} SQL expressions, {len(genie_joins)} joins")
 print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks")

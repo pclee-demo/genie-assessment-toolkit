@@ -3,7 +3,7 @@
 # Requires: all variables from fetch.py + score.py + recommend.py + llm.py
 # Produces: assessment .md file written to output_path
 
-space_name    = space_name  # cleaned in fetch.py (strips "(Clone)" and template suffixes)
+space_name    = space.get("display_name", space.get("title", "this space"))
 table_names   = [t.split(".")[-1] for t in table_identifiers]
 tables_str    = ", ".join(table_names) if table_names else "[your tables]"
 primary_table = table_names[0] if table_names else "your_table"
