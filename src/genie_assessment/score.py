@@ -109,7 +109,7 @@ if warehouse_locked:
 if tables_no_grant:
     a0_flags.append(
         f"Tables with no SELECT grants beyond the owner ({len(tables_no_grant)}): "
-        f"{', '.join(tables_no_grant[:5])}"
+        f"{', '.join(f'`{t}`' for t in tables_no_grant[:5])}"
         + (f" (+{len(tables_no_grant)-5} more)" if len(tables_no_grant) > 5 else "")
         + " — grant SELECT to the relevant users, groups, or service principal"
     )
@@ -154,19 +154,19 @@ for _table_id in table_identifiers:
 
 if metric_views_in_space:
     a0_flags.append(
-        f"✅ Metric Views in space: {', '.join(t.split('.')[-1] for t in metric_views_in_space)} "
+        f"✅ Metric Views in space: {', '.join(f'`{t.split(\".\")[-1]}`' for t in metric_views_in_space)} "
         "— semantic layer (measures, dimensions, filters) is defined at the UC layer"
     )
     if metric_views_in_catalog:
         a0_flags.append(
             f"Additional Metric Views in catalog not added to space: "
-            f"{', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:3])} "
+            f"{', '.join(f'`{t.split(\".\")[-1]}`' for t in metric_views_in_catalog[:3])} "
             "— add them if they cover relevant metrics for this space"
         )
 elif metric_views_in_catalog:
     a0_flags.append(
         f"Metric Views detected in catalog but not in this space: "
-        f"{', '.join(t.split('.')[-1] for t in metric_views_in_catalog[:5])} "
+        f"{', '.join(f'`{t.split(\".\")[-1]}`' for t in metric_views_in_catalog[:5])} "
         "— add to use the UC semantic layer instead of maintaining manual SQL Expressions"
     )
 

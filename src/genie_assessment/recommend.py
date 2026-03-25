@@ -17,7 +17,7 @@ if a0 == 1:
            "automatically infer join paths without relying solely on configured joins"] if genie_joins and not pk_fk_tables else []),
         *(["BLOCKING: Space not shared with any users — add CAN_USE via Space Settings > Permissions"] if space_not_shared else []),
         *(["BLOCKING: Warehouse not accessible to non-admins — grant CAN_USE in SQL > SQL Warehouses > Permissions"] if warehouse_locked else []),
-        *(["Tables with no SELECT grants: " + ", ".join(tables_no_grant[:4])
+        *(["Tables with no SELECT grants: " + ", ".join(f"`{t}`" for t in tables_no_grant[:4])
            + " — grant SELECT to the relevant users or groups"] if tables_no_grant else []),
     ]))
 elif a0 == 2:
@@ -47,7 +47,7 @@ elif a0 == 2:
         )
     if tables_no_grant:
         items_a0.append(
-            "Tables with no SELECT grants beyond the owner: " + ", ".join(tables_no_grant[:4])
+            "Tables with no SELECT grants beyond the owner: " + ", ".join(f"`{t}`" for t in tables_no_grant[:4])
             + (f" (+{len(tables_no_grant)-4} more)" if len(tables_no_grant) > 4 else "")
             + " — grant SELECT to the relevant users, groups, or service principal"
         )
