@@ -477,7 +477,7 @@ for ex in sql_instructions:
     for ref in TABLE_FROM_PAT.findall(sql):
         ref_name = ref.strip('`"').split('.')[-1].lower()
         if ref_name and ref_name not in cte_names and ref_name not in space_table_names:
-            sql_unknown_tables.append(f'"{title}" → {ref_name}')
+            sql_unknown_tables.append(f'"{title}" → `{ref_name}`')
             break
 
 # SQL sub-score: pattern coverage matters more than raw count
