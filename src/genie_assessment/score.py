@@ -32,11 +32,6 @@ if table_count > 1 and join_count == 0:
         f"No Genie joins configured — with {table_count} tables, add joins via "
         "Configuration > Joins to enable accurate multi-table queries"
     )
-elif table_count > 1 and join_count < tables_needing_joins:
-    a0_flags.append(
-        f"Only {join_count} join(s) defined for {table_count} tables — verify all "
-        "necessary table relationships are configured in Configuration > Joins"
-    )
 
 if pk_fk_count == 0 and table_count > 1:
     a0_flags.append(
@@ -369,16 +364,19 @@ if restricted_tables:
         "users querying filtered columns may get incomplete results without explanation"
     )
 
-# ── Area 3: Example SQL ───────────────────────────────────────────────────────
+# ── Area 3: Genie Instructions Configuration ──────────────────────────────────
+# Covers all four Configuration tabs: SQL Queries, Text Instructions, Joins, SQL Expressions
+
+# --- SQL Queries tab ---
 sql_count     = len(sql_instructions)
 HARDCODED_PAT = [r"= '[A-Z0-9]{4,}'", r"WHERE \w+ = '[^']{1,30}'", r"= \d{5,}"]
 PARAM_PAT     = [r":\w+", r"\{\{.*?\}\}", r"getArgument\("]
 
-JOIN_PAT    = re.compile(r"\bJOIN\b", re.IGNORECASE)
+JOIN_PAT      = re.compile(r"\bJOIN\b", re.IGNORECASE)
 DATE_FILT_PAT = re.compile(r"\b(date|timestamp|month|year|quarter|period|week)\b", re.IGNORECASE)
-AGG_PAT     = re.compile(r"\b(SUM|COUNT|AVG|MAX|MIN|GROUP BY)\b", re.IGNORECASE)
-TOPN_PAT    = re.compile(r"\bORDER\s+BY\b.{1,200}\bLIMIT\s+\d+", re.IGNORECASE | re.DOTALL)
-COMPARE_PAT = re.compile(
+AGG_PAT       = re.compile(r"\b(SUM|COUNT|AVG|MAX|MIN|GROUP BY)\b", re.IGNORECASE)
+TOPN_PAT      = re.compile(r"\bORDER\s+BY\b.{1,200}\bLIMIT\s+\d+", re.IGNORECASE | re.DOTALL)
+COMPARE_PAT   = re.compile(
     r"\bLAG\s*\(|prior[_\s]period|year.over.year|yoy\b|previous[_\s]*(month|quarter|year)|"
     r"period.over.period|pop\b|mom\b|qoq\b", re.IGNORECASE
 )
@@ -394,63 +392,186 @@ for ex in sql_instructions:
         hardcoded_sqls.append(title)
     if any(re.search(p, sql) for p in PARAM_PAT):
         parameterised_sqls.append(title)
-    if JOIN_PAT.search(sql):    has_join_example    = True
-    if DATE_FILT_PAT.search(sql): has_date_example  = True
-    if AGG_PAT.search(sql):     has_agg_example     = True
-    if TOPN_PAT.search(sql):    has_topn_example    = True
-    if COMPARE_PAT.search(sql): has_compare_example = True
+    if JOIN_PAT.search(sql):      has_join_example    = True
+    if DATE_FILT_PAT.search(sql): has_date_example    = True
+    if AGG_PAT.search(sql):       has_agg_example     = True
+    if TOPN_PAT.search(sql):      has_topn_example    = True
+    if COMPARE_PAT.search(sql):   has_compare_example = True
 
-# ── Table reference validity check ───────────────────────────────────────────
+# Table reference validity
 TABLE_FROM_PAT  = re.compile(r'\b(?:FROM|JOIN)\s+([`]?[\w.]+[`]?)', re.IGNORECASE)
 CTE_PAT         = re.compile(r'\bWITH\b\s+(\w+)\s+AS\s*\(', re.IGNORECASE)
 PLACEHOLDER_PAT = re.compile(r'[\[\{].*?[\]\}]')
 space_table_names = set(t.split('.')[-1].lower() for t in table_identifiers)
 
-sql_unknown_tables = []   # list of (title, unknown_ref) tuples
+sql_unknown_tables = []
 for ex in sql_instructions:
     sql   = ex.get("content", "")
     title = ex.get("title", "")[:40]
     if PLACEHOLDER_PAT.search(sql):
-        continue                               # skip template-style examples
+        continue
     cte_names = set(m.lower() for m in CTE_PAT.findall(sql))
     for ref in TABLE_FROM_PAT.findall(sql):
         ref_name = ref.strip('`"').split('.')[-1].lower()
         if ref_name and ref_name not in cte_names and ref_name not in space_table_names:
             sql_unknown_tables.append(f'"{title}" → {ref_name}')
-            break                              # one flag per example is enough
+            break
 
-if sql_count >= 10:   a3, a3l = 3, "Good"
-elif sql_count >= 5:  a3, a3l = 2, "OK"
-else:                 a3, a3l = 1, "Poor"
+# SQL sub-score: pattern coverage matters more than raw count
+patterns_covered = sum([has_agg_example, has_date_example, has_topn_example,
+                        has_compare_example, has_join_example, bool(parameterised_sqls)])
+if sql_count == 0:           sql_sub = 1
+elif patterns_covered >= 4:  sql_sub = 3
+elif patterns_covered >= 2:  sql_sub = 2
+else:                        sql_sub = 1
+if sql_unknown_tables and sql_sub == 3:
+    sql_sub = 2
 
-if sql_unknown_tables and a3 == 3:
-    a3, a3l = 2, "OK"
+# --- Text Instructions tab quality checks ---
+PROSE_METRIC_PAT = re.compile(
+    r"\bsum\s+of\b|\bdivided\s+by\b|"
+    r"(?:revenue|profit|margin)\s*[=:]|"
+    r"\bSUM\s*\(|\bCOUNT\s*\(",
+    re.IGNORECASE
+)
+PROSE_JOIN_PAT = re.compile(
+    r"\b(?:join|link|connect|relat)\w*\b.{0,50}\btable\b|"
+    r"\bforeign\s+key\b|\brelates?\s+to\b",
+    re.IGNORECASE
+)
+INSTR_SECTION_PATS = {
+    "role / behavior":  re.compile(r"^\s*#+.*(role|behav|context|overview|about)\b", re.I | re.M),
+    "critical rules":   re.compile(r"^\s*#+.*(critical|rule|filter|default|must|always)\b", re.I | re.M),
+    "business terms":   re.compile(r"^\s*#+.*(term|synonym|glossary|definition|abbreviation|business)\b", re.I | re.M),
+    "date handling":    re.compile(r"^\s*#+.*(date|time|period|fiscal|calendar)\b", re.I | re.M),
+}
+EXPLICIT_DIR_PAT = re.compile(
+    r"(?m)^[\s\*\-\•]*(?:when\b|always\b|never\b|if\s+(?:a\s+)?user|do\s+not\b)",
+    re.IGNORECASE
+)
+VAGUE_INSTR_PAT = re.compile(
+    r"\bconsider\b|\btry\s+to\b|\bif\s+possible\b|\bhandle\s+null|\bask\s+follow.up\b|\byou\s+might\b",
+    re.IGNORECASE
+)
+INLINE_SQL_PAT  = re.compile(r"\bSELECT\b.{5,200}\bFROM\b", re.IGNORECASE | re.DOTALL)
+EMPHATIC_PAT    = re.compile(
+    r"\*\*\s*(CRITICAL|IMPORTANT|ALWAYS|NEVER|MUST|WARNING)\b.*?\*\*|"
+    r"!!+\s*\w", re.IGNORECASE
+)
 
+instr_text_blob   = "\n".join(i.get("content", "") for i in text_instructions)
+total_instr_lines = sum(len(i.get("content", "").splitlines()) for i in text_instructions)
+total_instr_chars = sum(len(i.get("content", "")) for i in text_instructions)
+prose_metric_hits = len(PROSE_METRIC_PAT.findall(instr_text_blob))
+prose_join_hits   = len(PROSE_JOIN_PAT.findall(instr_text_blob))
+found_sections    = [k for k, p in INSTR_SECTION_PATS.items() if p.search(instr_text_blob)]
+missing_sections  = [s for s in INSTR_SECTION_PATS if s not in found_sections]
+has_explicit_dirs = bool(EXPLICIT_DIR_PAT.search(instr_text_blob))
+vague_instr_hits  = len(VAGUE_INSTR_PAT.findall(instr_text_blob))
+long_blocks, inline_sql_blocks, emphatic_blocks = [], [], []
+for _i in text_instructions:
+    _c     = _i.get("content", "")
+    _title = _i.get("title", "(untitled)")[:40]
+    if len(_c) > 800:              long_blocks.append(f'"{_title}" ({len(_c)} chars)')
+    if INLINE_SQL_PAT.search(_c):  inline_sql_blocks.append(f'"{_title}"')
+    if EMPHATIC_PAT.search(_c):    emphatic_blocks.append(f'"{_title}"')
+
+if not text_instructions:
+    instr_sub = 1
+elif (prose_metric_hits + prose_join_hits == 0
+      and len(found_sections) >= 2
+      and has_explicit_dirs
+      and total_instr_lines <= 100):
+    instr_sub = 3
+elif prose_metric_hits + prose_join_hits > 2:
+    instr_sub = 1
+else:
+    instr_sub = 2
+
+# Combined score: floor average (both sub-areas need to be good for overall Good)
+a3 = max(1, (sql_sub + instr_sub) // 2)
+a3l = {3: "Good", 2: "OK", 1: "Poor"}[a3]
+
+# ── Area 3 flags ──────────────────────────────────────────────────────────────
 missing_types = []
 a3_flags = []
-if sql_count < 10:
-    a3_flags.append(f"Only {sql_count} SQL examples — recommend 10+ to teach query patterns")
+
+# SQL Queries tab
+if sql_count == 0:
+    a3_flags.append(
+        "SQL Queries tab: no example queries — target 10–15 to teach Genie the full "
+        "query-pattern matrix (aggregation, date filter, JOIN, top-N, period-over-period)"
+    )
+elif sql_count < 10:
+    a3_flags.append(f"SQL Queries tab: only {sql_count} example(s) — target 10–15 for full pattern coverage")
 if hardcoded_sqls:
-    a3_flags.append(f"Hardcoded values in: {'; '.join(hardcoded_sqls[:3])} — use `:param_name` syntax")
+    a3_flags.append(f"SQL Queries tab: hardcoded values in: {'; '.join(hardcoded_sqls[:3])} — use `:param_name` syntax")
 if not parameterised_sqls and sql_count > 0:
-    a3_flags.append("No parameterised queries — add `:param_name` or `{{param}}` examples")
-if not has_join_example:    missing_types.append("multi-table `JOIN`s")
+    a3_flags.append("SQL Queries tab: no parameterised queries — add `:param_name` or `{{param}}` examples")
+if not has_join_example and table_count > 1: missing_types.append("multi-table `JOIN`s")
 if not has_date_example:    missing_types.append("date/time filtering")
 if not has_agg_example:     missing_types.append("aggregations (`SUM`/`COUNT`/`GROUP BY`)")
 if not has_topn_example:    missing_types.append("top-N ranking (`ORDER BY...LIMIT`)")
 if not has_compare_example: missing_types.append("period-over-period / YoY comparisons")
 if missing_types and sql_count > 0:
-    a3_flags.append(f"Missing query-type examples for: {', '.join(missing_types)}")
+    a3_flags.append(f"SQL Queries tab: missing pattern examples for: {', '.join(missing_types)}")
 if sql_unknown_tables:
     a3_flags.append(
-        f"SQL examples reference tables not in this space ({len(sql_unknown_tables)}): "
+        f"SQL Queries tab: queries reference tables not in this space ({len(sql_unknown_tables)}): "
         f"{'; '.join(sql_unknown_tables[:3])}"
         + (f" (+{len(sql_unknown_tables)-3} more)" if len(sql_unknown_tables) > 3 else "")
-        + " — these examples teach Genie patterns against the wrong tables; "
-        "update to reference the tables actually in this space"
+        + " — update to reference tables actually in this space"
     )
 
-# ── Area 4: Instructions ──────────────────────────────────────────────────────
+# Text Instructions tab
+if not text_instructions:
+    a3_flags.append(
+        "Text tab: no instructions — structure with Role/behavior, Critical Rules/default filters, "
+        "Business Terms/synonyms, and Date Handling; keep ≤100 lines; "
+        "reserve text for rules Genie cannot infer from UC metadata or SQL examples"
+    )
+else:
+    if inline_sql_blocks:
+        a3_flags.append(
+            f"Text tab: inline SQL found in {len(inline_sql_blocks)} block(s) "
+            f"({'; '.join(inline_sql_blocks[:2])}) — move to SQL Queries tab"
+        )
+    if prose_metric_hits > 0:
+        a3_flags.append(
+            "Text tab: metric/formula definitions found (e.g. `revenue = sum of...`) — "
+            "move to SQL Expressions or UC column comments; "
+            "text is for behavioural rules only"
+        )
+    if prose_join_hits > 0:
+        a3_flags.append(
+            "Text tab: table relationship descriptions found — move to Joins tab; "
+            "text is for behavioural rules only"
+        )
+    if missing_sections:
+        a3_flags.append(
+            "Text tab: missing sections — " + ", ".join(missing_sections)
+            + "; structure instructions so Genie can parse rules reliably"
+        )
+    if total_instr_lines > 100:
+        a3_flags.append(
+            f"Text tab: {total_instr_lines} lines — keep ≤100; "
+            "every line should be a rule Genie cannot infer from UC metadata or SQL examples"
+        )
+    elif vague_instr_hits >= 2 and not has_explicit_dirs:
+        a3_flags.append(
+            "Text tab: vague guidance detected — rewrite as explicit directives: "
+            "'When users ask X, do Y' or 'Always filter by Z'"
+        )
+
+# Joins tab — completeness check (only flagged here when some joins exist; missing joins stay in Area 0)
+if table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
+    a3_flags.append(
+        f"Joins tab: only {join_count} join(s) defined for {table_count} tables — "
+        "verify all table relationships are configured in Configuration > Joins"
+    )
+
+# ── Area 4: merged into Area 3 ────────────────────────────────────────────────
+# These variables are computed here for use by the LLM instructions-draft generator (llm.py)
 SCHEMA_DUMP = [
     r"\bFK\b", r"foreign key", r"primary key", r"\bSCHEMA\b",
     r"field uses codes", r"This table", r"stores all", r"references the",
@@ -467,51 +588,15 @@ BIZ_RULE = [
     r"KPI", r"metric", r"definition",
     r"do not.*join", r"prefer.*join",
 ]
-INLINE_SQL_PAT = re.compile(r"\bSELECT\b.{5,200}\bFROM\b", re.IGNORECASE | re.DOTALL)
-EMPHATIC_PAT   = re.compile(
-    r"\*\*\s*(CRITICAL|IMPORTANT|ALWAYS|NEVER|MUST|WARNING)\b.*?\*\*|"
-    r"!!+\s*\w", re.IGNORECASE
-)
 
-schema_hits, biz_hits  = 0, 0
-long_blocks, inline_sql_blocks, emphatic_blocks = [], [], []
+schema_hits, biz_hits = 0, 0
 for i in text_instructions:
-    c     = i.get("content", "")
-    title = i.get("title", "(untitled)")[:40]
+    c = i.get("content", "")
     schema_hits += sum(1 for p in SCHEMA_DUMP if re.search(p, c, re.IGNORECASE))
     biz_hits    += sum(1 for p in BIZ_RULE    if re.search(p, c, re.IGNORECASE))
-    if len(c) > 800:            long_blocks.append(f'"{title}" ({len(c)} chars)')
-    if INLINE_SQL_PAT.search(c): inline_sql_blocks.append(f'"{title}"')
-    if EMPHATIC_PAT.search(c):  emphatic_blocks.append(f'"{title}"')
 
-total_instr_chars = sum(len(i.get("content","")) for i in text_instructions)
-total_instr_lines = sum(len(i.get("content","").splitlines()) for i in text_instructions)
-
-if not text_instructions:          a4, a4l = 1, "Poor"
-elif biz_hits > schema_hits:       a4, a4l = 3, "Good"
-elif schema_hits > 3:              a4, a4l = 1, "Poor"
-else:                              a4, a4l = 2, "OK"
-
-if a4 == 3 and (len(long_blocks) > 2 or inline_sql_blocks or emphatic_blocks):
-    a4, a4l = 2, "OK"
-if a4 == 2 and inline_sql_blocks and schema_hits > 2:
-    a4, a4l = 1, "Poor"
-
+a4, a4l  = 0, "N/A"
 a4_flags = []
-if not text_instructions:
-    a4_flags.append("No instructions found — add business rules (fiscal year, default filters, KPI definitions)")
-elif schema_hits > 3:
-    a4_flags.append("Instructions look like a schema/data dictionary — Genie reads UC metadata directly; use instructions for business rules instead")
-if inline_sql_blocks:
-    a4_flags.append(f"Text instructions contain inline `SELECT...FROM` SQL ({len(inline_sql_blocks)} block(s)): {'; '.join(inline_sql_blocks[:3])} — move SQL examples to the SQL Queries tab")
-if emphatic_blocks:
-    a4_flags.append(f"Emphatic override patterns (e.g. **NEVER**, !!ALWAYS!!) found in: {'; '.join(emphatic_blocks[:3])} — these signal workarounds; fix the underlying data model or use the Joins tab instead")
-if long_blocks:
-    a4_flags.append(f"Long instruction blocks (>300 chars): {'; '.join(long_blocks[:3])} — split into single-topic blocks")
-if total_instr_lines > 100:
-    a4_flags.append(f"Instructions total {total_instr_lines} lines — best practice is ≤100 lines; trim to the most impactful rules")
-elif total_instr_chars > 3000:
-    a4_flags.append(f"Total instruction length is {total_instr_chars:,} chars — trim to the most impactful rules")
 
 # ── Area 3 addendum: SQL / Sample Question alignment check ───────────────────
 # (runs here so sample_questions is available; flags are appended to a3_flags)
@@ -761,12 +846,12 @@ if unmapped_abbrevs:
         a7, a7l = 2, "OK"
 
 # ── Verdict ───────────────────────────────────────────────────────────────────
-scores  = [a0, a1, a2, a3, a4, a5, a6, a7]
-labels  = [a0l, a1l, a2l, a3l, a4l, a5l, a6l, a7l]
+scores  = [a0, a1, a2, a3, a5, a6, a7]
+labels  = [a0l, a1l, a2l, a3l, a5l, a6l, a7l]
 areas   = ["0. Data & UC Readiness", "1. Table & Space Curation", "2. Metadata Quality",
-           "3. Example SQL", "4. Instructions", "5. Sample Questions",
-           "6. Benchmarks", "7. Semantic Layer"]
-flags   = [a0_flags, a1_flags, a2_flags, a3_flags, a4_flags, a5_flags, a6_flags, a7_flags]
+           "3. Genie Instructions Configuration", "4. Sample Questions",
+           "5. Benchmarks", "6. Semantic Layer"]
+flags   = [a0_flags, a1_flags, a2_flags, a3_flags, a5_flags, a6_flags, a7_flags]
 
 scored_total = sum(s for s, l in zip(scores, labels) if l != "N/A")
 max_total    = 3 * sum(1 for l in labels if l != "N/A")
@@ -787,7 +872,7 @@ else:
     else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
 
 # ── Per-area minimums — cap verdict if any critical area is Poor ───────────────
-BLOCKER_AREAS = {"0. Data & UC Readiness", "2. Metadata Quality", "6. Benchmarks"}
+BLOCKER_AREAS = {"0. Data & UC Readiness", "2. Metadata Quality", "5. Benchmarks"}
 blocker_fails = [
     area.split(". ", 1)[1]
     for area, score, label in zip(areas, scores, labels)

@@ -121,51 +121,50 @@ elif a2 == 2:
         *(["Cast date/time STRING columns to DATE/TIMESTAMP: " + ", ".join(date_as_string[:3])] if date_as_string else []),
     ]))
 
-# ── Area 3: Example SQL ───────────────────────────────────────────────────────
+# ── Area 3: Genie Instructions Configuration ──────────────────────────────────
 if a3 == 1:
-    recs.append(("Example SQL", SEVERITY[1], [
-        f"CRITICAL GAP: Only {sql_count} SQL example(s) — Genie has almost nothing to learn query patterns from; target is 10–15",
-        "Use the SQL Query Templates and Sample Question Generator below to bootstrap examples quickly",
-        "Start with one example per common question type: aggregation, time filter, multi-table join, top-N, period-over-period",
-        "Every example must be a complete, tested query — not fragments or comments",
-        "Use :param_name syntax for any values that change (dates, filters, IDs)",
-    ]))
+    items_a3 = []
+    if sql_sub == 1:
+        items_a3 += [
+            f"SQL Queries tab: {'no examples' if sql_count == 0 else f'only {sql_count} example(s)'} — "
+            "target 10–15; start with aggregation, date filter, JOIN, top-N, and period-over-period",
+            "Use the SQL Query Templates below to bootstrap examples quickly — every example must be a complete, tested query",
+        ]
+    if instr_sub == 1:
+        items_a3 += [
+            "Text tab: " + ("no instructions" if not text_instructions else "instructions need a full rewrite") +
+            " — use the Instructions Draft (LLM-generated) section below as a starting point",
+            "Structure with 4 sections: Role/behavior, Critical Rules/default filters, Business Terms/synonyms, Date Handling",
+            "Keep text ≤100 lines; reserve it for rules Genie cannot infer from UC metadata or SQL examples — move metrics/joins to their own tabs",
+        ]
+    recs.append(("Genie Instructions Configuration", SEVERITY[1], items_a3))
 elif a3 == 2:
-    missing_str = (", ".join(missing_types) + " — use the SQL Templates below") if missing_types else "review coverage against the full query matrix"
-    recs.append(("Example SQL", SEVERITY[2], [
-        f"You have {sql_count} examples — add {max(0, 10 - sql_count)} more to reach 10 (target: 10–15)" if sql_count < 10
-        else f"You have {sql_count} SQL examples (count is fine) — quality issues are pulling the score down: fix table references, add parameterisation, and address alignment gaps flagged above",
-        f"Fill coverage gaps: {missing_str}",
-        *(["Replace hardcoded values in: " + "; ".join(hardcoded_sqls[:3]) + " — use :param_name syntax"] if hardcoded_sqls else []),
-        *(["No parameterised queries yet — add at least one :param_name or {{param}} example"] if not parameterised_sqls and sql_count > 0 else []),
-        *(["SQL examples reference tables not in this space: " + "; ".join(sql_unknown_tables[:3])
-           + " — update these to reference the tables actually in this space, "
-           "otherwise Genie learns patterns against tables it cannot query"] if sql_unknown_tables else []),
-        *(["SQL/question alignment gaps: " + "; ".join(alignment_gaps)
-           + " — prioritise adding SQL examples that match your featured sample questions"] if alignment_gaps else []),
-        "Include complete queries with all required default filters — not fragments",
-    ]))
-
-# ── Area 4: Instructions ──────────────────────────────────────────────────────
-if a4 == 1:
-    recs.append(("Instructions", SEVERITY[1], [
-        "REPLACE: Current instructions are not helping Genie — delete and rewrite from scratch using the Instructions Template below",
-        *(["Delete all schema/data dictionary content — Genie reads Unity Catalog metadata directly; this content is noise"] if schema_hits > 3 else []),
-        *(["Remove inline SQL from text instructions (" + ", ".join(inline_sql_blocks[:2]) + ") — move to the SQL Queries tab"] if inline_sql_blocks else []),
-        "Use the 7-section template: Role → Instructions → Critical Rules → Default Filters → Business Terms → Date Handling → Data Quality Notes",
-        "Keep total length under 100 lines — every line should be a rule Genie can't infer from metadata alone",
-        "See the Instructions Draft (LLM-generated) section below for a ready-to-use rewrite based on your table metadata",
-    ]))
-elif a4 == 2:
-    recs.append(("Instructions", SEVERITY[2], [
-        *(["Remove schema/data dictionary content (" + str(schema_hits) + " pattern(s) detected) — replace with business rules; Genie reads UC metadata directly"] if schema_hits > 0 else []),
-        *(["Move inline SQL to the SQL Queries tab: " + ", ".join(inline_sql_blocks[:2])] if inline_sql_blocks else []),
-        *(["Replace emphatic overrides (" + ", ".join(emphatic_blocks[:2]) + ") — fix the underlying data model or use the Joins tab instead"] if emphatic_blocks else []),
-        *(["Split long instruction blocks: " + "; ".join(long_blocks[:2])] if long_blocks else []),
-        *(["Trim total instructions from " + str(total_instr_lines) + " lines to ≤100 lines"] if total_instr_lines > 100 else []),
-        "Add any missing business rules: fiscal year, default date range, NULL semantics, KPI definitions",
-        "See the Instructions Draft (LLM-generated) section below for a ready-to-use rewrite based on your table metadata",
-    ]))
+    items_a3 = []
+    if sql_sub < 3:
+        missing_str = (", ".join(missing_types) + " — use the SQL Templates below") if missing_types else "review against the full query-pattern matrix"
+        items_a3 += [
+            (f"SQL Queries tab: add {max(0, 10 - sql_count)} more to reach 10 (target 10–15)"
+             if sql_count < 10 else
+             f"SQL Queries tab: {sql_count} queries (count OK) — fix quality issues flagged above"),
+            *(["Fill pattern gaps: " + missing_str] if missing_types else []),
+            *(["Replace hardcoded values in: " + "; ".join(hardcoded_sqls[:3]) + " — use `:param_name` syntax"] if hardcoded_sqls else []),
+            *(["SQL/question alignment gaps: " + "; ".join(alignment_gaps)
+               + " — add examples that match your featured sample questions"] if alignment_gaps else []),
+        ]
+    if instr_sub < 3:
+        items_a3 += [
+            *(["Text tab: move inline SQL to the SQL Queries tab: " + "; ".join(inline_sql_blocks[:2])] if inline_sql_blocks else []),
+            *(["Text tab: move metric/formula definitions to SQL Expressions — text is for behavioural rules only"] if prose_metric_hits > 0 else []),
+            *(["Text tab: move table relationship descriptions to the Joins tab"] if prose_join_hits > 0 else []),
+            *(["Text tab: add missing sections — " + ", ".join(missing_sections)] if missing_sections else []),
+            *(["Text tab: trim to ≤100 lines — remove anything Genie can infer from metadata or SQL examples"] if total_instr_lines > 100 else []),
+            "See the Instructions Draft (LLM-generated) section below for a ready-to-use rewrite",
+        ]
+    if table_count > 1 and join_count > 0 and join_count < tables_needing_joins:
+        items_a3 += [
+            f"Joins tab: verify all {table_count} table relationships are configured — only {join_count} join(s) found",
+        ]
+    recs.append(("Genie Instructions Configuration", SEVERITY[2], items_a3))
 
 # ── Area 5: Sample Questions ──────────────────────────────────────────────────
 if a5 == 1:
