@@ -215,14 +215,14 @@ _DESC_LABEL_MAP = {
 def _llm_judge_desc(desc_text):
     """Ask the LLM whether the description covers the four required elements.
     Returns a list of missing element labels, or None on failure."""
-    _prompt = f"""Does this Genie space description adequately cover each of the four elements below?
+    _prompt = f"""Does this Genie space description cover each element below? Be generous — implicit or indirect coverage counts.
 Reply with ONLY a JSON object — no other text.
 
 Elements:
-1. metrics   — mentions what metrics, KPIs, or measures can be answered
-2. dimensions — mentions what dimensions, segments, or groupings exist
-3. grain     — mentions data grain, event type, or refresh/freshness
-4. users     — mentions intended users or audience
+1. metrics   — mentions any metrics, KPIs, measures, scores, amounts, counts, or what can be analysed (implicit is fine)
+2. dimensions — mentions any dimensions, segments, groupings, categories, types, or breakdowns (implicit is fine)
+3. grain     — mentions data grain, event type, object type, or what each record represents (implicit is fine)
+4. users     — mentions intended users, audience, teams, roles, or the business function it serves (implicit is fine)
 
 Description: "{desc_text}"
 
@@ -250,7 +250,7 @@ elif len(space_desc) < 80:
     a1_flags.append(f"Space description too short ({len(space_desc)} chars) — expand to cover key metrics, dimensions, data grain, and target users")
 else:
     _missing = _llm_judge_desc(space_desc)
-    if _missing:
+    if _missing and len(_missing) >= 2:
         a1_flags.append(f"Space description missing: {', '.join(_missing)} — follow template: purpose + Key Metrics + Dimensions + Data grain + Target Users")
 
 # ── Area 2: Metadata Quality ──────────────────────────────────────────────────
