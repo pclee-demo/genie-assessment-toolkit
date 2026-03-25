@@ -57,11 +57,6 @@ if is_serverless is False:
         "Space is not using a Serverless SQL warehouse — serverless is "
         "recommended for Genie (lower latency, auto-scaling, no cold-start penalty)"
     )
-if not tagged_count and table_count > 0:
-    a0_flags.append(
-        "No UC tags found on any table — consider tagging with domain, "
-        "data classification, and sensitivity labels for governance"
-    )
 
 # ── Permissions checks ────────────────────────────────────────────────────────
 def _can_use_principals(acl):
@@ -151,6 +146,19 @@ for _table_id in table_identifiers:
                 if _fn not in metric_views_in_catalog: metric_views_in_catalog.append(_fn)
     except Exception:
         pass
+
+# UC tags — exclude metric views (semantic objects, not user-managed tables)
+_mv_set = set(metric_views_in_space)
+base_tagged_count = sum(
+    1 for t in table_identifiers
+    if t.lower() not in _mv_set and table_tags.get(t)
+)
+_base_taggable = table_count - len(metric_views_in_space)
+if not base_tagged_count and _base_taggable > 0:
+    a0_flags.append(
+        "No UC tags found on any table — consider tagging with domain, "
+        "data classification, and sensitivity labels for governance"
+    )
 
 _mv_space_str   = ', '.join('`' + t.split('.')[-1] + '`' for t in metric_views_in_space)
 _mv_catalog_str = ', '.join('`' + t.split('.')[-1] + '`' for t in metric_views_in_catalog)
