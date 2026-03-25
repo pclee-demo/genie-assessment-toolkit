@@ -282,21 +282,30 @@ if _instr_content:
 
 # SQL section — prefer LLM-generated queries, fall back to static placeholder templates
 if sql_output:
+    # Parse "Title: ...\nSQL:\n...\n---" blocks into formatted markdown
+    _sql_md = []
+    for _block in re.split(r'\n?---+\n?', sql_output.strip()):
+        _block = _block.strip()
+        if not _block:
+            continue
+        _title_m = re.match(r'^Title:\s*(.+?)(?:\n|$)', _block, re.IGNORECASE)
+        _sql_m   = re.search(r'\bSQL:\s*\n([\s\S]+)', _block, re.IGNORECASE)
+        if _title_m and _sql_m:
+            _sql_md += [f"#### {_title_m.group(1).strip()}", "", "```sql", _sql_m.group(1).strip(), "```", ""]
+        elif _block:
+            _sql_md += [_block, ""]
+
     md_lines += [
         "---",
         "",
         "## SQL Query Examples (LLM-generated)",
         "",
-        ("These queries were generated from your table metadata to fill the coverage gaps identified "
-         "by the assessment. Each query uses your real column names with `:param_name` syntax for "
-         "variable values. **Test every query in a SQL editor before adding it to your space** — "
-         "incorrect examples actively teach Genie wrong patterns. "
-         "Aim for 10–15 total examples covering all pattern types."),
+        "_Test every query before adding — incorrect examples actively teach Genie wrong patterns. "
+        "Aim for 10–15 total covering all pattern types._",
         "",
-        "> Test first, then add via: **Configuration > Instructions > SQL Queries tab > Add SQL Query**",
+        "> **Configuration > Instructions > SQL Queries tab > Add SQL Query**",
         "",
-        sql_output,
-        "",
+        *_sql_md,
     ]
 elif sql_templates:
     md_lines += [
