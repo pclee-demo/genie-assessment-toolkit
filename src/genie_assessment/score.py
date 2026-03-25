@@ -781,16 +781,16 @@ total        = scored_total
 if max_total == 24:
     if total >= 21:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
     elif total >= 15: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
-    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Significant rework needed — consider starting with a focused domain"
+    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
 elif max_total == 21:
     if total >= 18:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
     elif total >= 13: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
-    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Significant rework needed — consider starting with a focused domain"
+    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
 else:
     pct = total / max_total if max_total else 0
     if pct >= 0.83:   verdict, verdict_note = "PRODUCTION READY",   "Minor tuning recommended before onboarding business users"
     elif pct >= 0.61: verdict, verdict_note = "NEEDS IMPROVEMENT",  "Address flagged areas before onboarding business users"
-    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Significant rework needed — consider starting with a focused domain"
+    else:             verdict, verdict_note = "RECOMMEND REBUILD",  "Good foundation — work through the flagged areas below to get this space production-ready"
 
 # ── Per-area minimums — cap verdict if any critical area is Poor ───────────────
 BLOCKER_AREAS = {"0. Data & UC Readiness", "2. Metadata Quality", "6. Benchmarks"}
