@@ -607,7 +607,7 @@ if bm_hardcoded:
 # ── Area 7: Semantic Layer (Metric Views / SQL Expressions) ───────────────────
 expr_count   = 0
 measures_ex  = []  # initialise so recommend.py can always reference these
-synonyms_ex  = []
+synonyms_ex  = list(sql_expression_synonyms) if "sql_expression_synonyms" in dir() else []
 filters_ex   = []
 dimensions_ex = []
 
@@ -670,8 +670,6 @@ else:
             measures_ex.append(name)
         elif etype in ("FILTER","CONDITIONAL") or (not etype and COND_CONTENT_PAT.search(content) and not AGG_CONTENT_PAT.search(content)):
             filters_ex.append(name)
-        elif etype == "SYNONYM":
-            synonyms_ex.append(name)
         else:
             dimensions_ex.append(name)
 

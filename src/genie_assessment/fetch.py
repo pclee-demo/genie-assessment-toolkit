@@ -29,8 +29,11 @@ text_instructions = [i for i in all_instructions if i.get("instruction_type") ==
 sql_instructions  = [i for i in all_instructions if i.get("instruction_type") == "SQL_INSTRUCTION"]
 
 # SQL Expressions (Measures, Dimensions, Filters, Synonyms) — stored as SQL_SNIPPET items
-# Each item's content is a JSON string; parse into a normalised list for score.py
+# Each item's content is a JSON string; parse into a normalised list for score.py.
+# Synonyms are embedded inside each item (not separate items) — collect them flat
+# into sql_expression_synonyms so score.py can check coverage without inflating the count.
 sql_expressions = []
+sql_expression_synonyms = []  # flat list of all synonym strings across all expressions
 for _i in all_instructions:
     if _i.get("instruction_type") != "SQL_SNIPPET":
         continue
@@ -41,6 +44,7 @@ for _i in all_instructions:
     _raw_type = _c.get("type", "")
     _name = _c.get("display_name") or _c.get("alias", "")
     _code = _c.get("code", "")
+    _syns = _c.get("synonyms", [])
     if "MEASURE" in _raw_type:
         _expr_type = "MEASURE"
     elif "DIMENSION" in _raw_type:
@@ -50,8 +54,7 @@ for _i in all_instructions:
     else:
         _expr_type = _raw_type
     sql_expressions.append({"expression_type": _expr_type, "name": _name, "expression": _code})
-    for _syn in _c.get("synonyms", []):
-        sql_expressions.append({"expression_type": "SYNONYM", "name": _syn, "expression": ""})
+    sql_expression_synonyms.extend(_syns)
 
 
 # ── Sample questions + benchmarks ─────────────────────────────────────────────
