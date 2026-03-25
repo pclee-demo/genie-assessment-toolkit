@@ -233,17 +233,22 @@ Behavioural rules: be concise; ask for clarification if unclear; do not choose f
 
 ## Default Filters  (filters that always apply, e.g. is_deleted = false)
 
-## Business Terms  (10–15 lines — domain-specific definitions, synonyms, abbreviations only)
+## Business Terms  (abbreviations, multi-word synonyms, and KPI formulas ONLY — 5–10 lines max)
+Do NOT define individual column names here — Genie reads column comments from UC directly.
+Only include: abbreviations the user might type (e.g. ARR, NPS, RM), multi-table KPI formulas,
+and domain synonyms that are NOT obvious from the column name itself.
 
 ## Date Handling  (5–10 lines — real date column name(s), fiscal year offset if any, default period)
 
-## Dimension Hierarchies  (5–10 lines — e.g. Region > Country > City)
+## Dimension Hierarchies  (only if non-obvious rollup exists, e.g. Region > Country > City)
 
-## Data Quality Notes  (known NULLs, stale data, caveats)
+## Data Quality Notes  (known NULLs, stale data, caveats — omit if none known)
 
 WHAT NOT TO INCLUDE:
 • SQL examples (belong in SQL Queries tab)
-• Column lists or schema descriptions (Genie reads UC metadata directly)
+• Column lists, schema descriptions, or column-name definitions (Genie reads UC metadata directly)
+• Definitions like "account_id = unique account identifier" — these belong in UC column comments, not here
+• Critical Rules that just describe the table schema — only include mandatory query filters and non-obvious grain rules
 • Inline SQL in text
 • Verbose explanations or step-by-step guides
 • Emphatic overrides ("NEVER do X") — fix the data model instead
@@ -283,7 +288,7 @@ Write a complete instructions block using the 8-section template above. Requirem
 1. Fill every section with real, domain-specific content inferred from the table metadata — no generic placeholders like "[define here]" unless you genuinely cannot infer the value (then use [placeholder: description]).
 2. Infer the table type (fact / metrics mart / wide) and use the matching Critical Rules pattern.
 3. Use the actual date column name(s) from the metadata in Date Handling.
-4. Identify coded or status columns (e.g. type flags, status codes) and define their values in Business Terms.
+4. Only put something in Business Terms if a user would type it but Genie could not resolve it from column names alone — abbreviations, cross-table KPI formulas, and non-obvious synonyms. Do not list column names.
 5. Keep total length 50–100 lines.
 6. Output ONLY the instructions block — no preamble, no explanation, no markdown code fences."""
 
