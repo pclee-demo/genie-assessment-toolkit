@@ -167,20 +167,9 @@ for table_id in table_identifiers:
     except Exception:
         table_grants[table_id] = None  # None = insufficient privilege to check
 
-# Trusted Answers
-trusted_answers_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/trusted-answers")
-if "error" in trusted_answers_resp:
-    trusted_answers_resp = api_get(f"/api/2.0/data-rooms/{SPACE_ID}/trusted_answers")
-trusted_answers = (
-    trusted_answers_resp.get("trusted_answers")
-    or trusted_answers_resp.get("answers")
-    or []
-) if "error" not in trusted_answers_resp else []
-
 print(f"✓ Space:         {space.get('display_name', space.get('title', ''))}")
 print(f"  Tables:        {len(table_identifiers)}")
 print(f"  Instructions:  {len(text_instructions)} text, {len(sql_instructions)} SQL queries, {len(sql_expressions)} SQL expressions, {len(genie_joins)} joins")
 print(f"  Questions:     {len(sample_questions)} sample, {len(benchmarks)} benchmarks")
-print(f"  Trusted Ans:   {len(trusted_answers)}")
 print(f"  PK/FK tables:  {len(pk_fk_tables)}/{len(table_identifiers)}")
 print(f"  Space ACL:     {len(space_acl)} entries  |  Warehouse ACL: {len(warehouse_acl)} entries")

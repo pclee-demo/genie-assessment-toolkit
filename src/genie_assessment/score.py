@@ -570,7 +570,12 @@ elif sql_count < 10:
 if hardcoded_sqls:
     a3_flags.append(f"SQL Queries tab: hardcoded values in: {'; '.join(hardcoded_sqls[:3])} — use `:param_name` syntax")
 if not parameterised_sqls and sql_count > 0:
-    a3_flags.append("SQL Queries tab: no parameterised queries — add `:param_name` or `{{param}}` examples")
+    a3_flags.append(
+        "SQL Queries tab: no parameterised queries (`:param_name` syntax) — "
+        "parameterised queries become Trusted Assets: when Genie matches a user question "
+        "to one, the response is automatically labelled Trusted, signalling a domain expert "
+        "has verified the answer path"
+    )
 if not has_join_example and table_count > 1: missing_types.append("multi-table JOINs")
 if not has_date_example:    missing_types.append("date/time filtering")
 if not has_agg_example:     missing_types.append("aggregations (SUM/COUNT/GROUP BY)")
@@ -784,7 +789,6 @@ if unmapped_abbrevs:
 
 # ── Area 5: Sample Questions ──────────────────────────────────────────────────
 sq_count = len(sample_questions)
-ta_count = len(trusted_answers) if "trusted_answers" in dir() else 0
 
 if sq_count >= 10:   a5, a5l = 3, "Good"
 elif sq_count >= 5:  a5, a5l = 2, "OK"
@@ -802,12 +806,6 @@ if sq_count > 0:
         "10 questions spread across different business areas and question types"
     )
 
-# Trusted Answers — positive signal only (they're auto-generated from verified responses, not manually added)
-if ta_count > 0:
-    a5_flags.append(
-        f"Trusted Answers: {ta_count} configured — verified responses will be served "
-        "consistently regardless of how the question is phrased"
-    )
 
 # Table coverage check — flag tables not referenced by any sample question
 # Uses table-name matching only (column token matching produced too many false positives
