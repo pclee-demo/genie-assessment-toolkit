@@ -9,13 +9,12 @@ recs = []  # list of (area, severity_label, [items])
 # ── Area 0: Data & UC Readiness ───────────────────────────────────────────────
 if a0 == 1:
     recs.append(("Data & UC Readiness", SEVERITY[1], [
-        f"BLOCKING: No Genie joins and no PK/FK constraints — with {table_count} tables, "
-        "Genie cannot reliably answer multi-table questions",
-        "Add joins immediately: Configuration > Joins — define the ON condition for every "
-        "table pair users are likely to query together",
-        "Add PK/FK constraints in UC: ALTER TABLE ... ADD CONSTRAINT ... PRIMARY KEY / FOREIGN KEY "
-        "— Genie uses these to automatically infer join paths",
-        "Without at least one of these, Genie will guess join conditions and produce incorrect results",
+        *(["BLOCKING: No Genie joins and no PK/FK constraints — with " + str(table_count) + " tables, "
+           "Genie cannot reliably answer multi-table questions. "
+           "Add joins in Configuration > Joins, or add PK/FK constraints via "
+           "ALTER TABLE ... ADD CONSTRAINT ... PRIMARY KEY / FOREIGN KEY"] if not genie_joins and not pk_fk_tables else []),
+        *(["No PK/FK constraints in UC — add PRIMARY KEY / FOREIGN KEY constraints so Genie can "
+           "automatically infer join paths without relying solely on configured joins"] if genie_joins and not pk_fk_tables else []),
         *(["BLOCKING: Space not shared with any users — add CAN_USE via Space Settings > Permissions"] if space_not_shared else []),
         *(["BLOCKING: Warehouse not accessible to non-admins — grant CAN_USE in SQL > SQL Warehouses > Permissions"] if warehouse_locked else []),
         *(["Tables with no SELECT grants: " + ", ".join(tables_no_grant[:4])
