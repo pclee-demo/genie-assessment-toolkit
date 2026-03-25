@@ -207,7 +207,7 @@ for area, score, label, area_flags in zip(areas, scores, labels, flags):
     if _short in _recs_lookup:
         _sev, _items = _recs_lookup[_short]
         md_lines.append("")
-        md_lines.append(f"**Next steps** ({_sev.strip()}):")
+        md_lines.append("**Next steps:**")
         for item in _items:
             md_lines.append(f"- {item}")
 
