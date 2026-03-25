@@ -215,17 +215,17 @@ for area, score, label, area_flags in zip(areas, scores, labels, flags):
 
 # Domain curation section (only if LLM ran)
 if domain_output:
+    # Downgrade any top-level headings in LLM output so they sit below the section heading
+    _domain_md = re.sub(r'^#{1,3} ', '#### ', domain_output, flags=re.MULTILINE)
     md_lines += [
         "---",
         "",
         "## Domain Curation Guide (LLM-generated)",
         "",
-        ("This space contains too many tables across multiple business domains, which degrades Genie's "
-         "accuracy. The guide below — generated from your table metadata — identifies distinct domains, "
-         "recommends which tables belong in each, and suggests a focused name for each resulting space. "
-         "Use it to plan a table reduction before onboarding business users."),
+        "_Too many tables in one space degrades Genie accuracy. "
+        "Use the guide below to split into focused spaces before onboarding business users._",
         "",
-        domain_output,
+        _domain_md,
         "",
     ]
 

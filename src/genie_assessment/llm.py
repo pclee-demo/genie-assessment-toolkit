@@ -120,20 +120,28 @@ if a1 < 3 or len(schemas) > 1:
 
     domain_prompt = f"""You are a Databricks data domain expert helping a customer improve their Genie space.
 
-The Genie space "{space_name_str}" currently has {table_count} tables. This is {'too many' if table_count > 10 else 'borderline'} — best practice is ≤10 tightly scoped tables per space.
+The Genie space "{space_name_str}" currently has {table_count} tables. Best practice is ≤10 tightly scoped tables per space.
 
 Table metadata:
 {metadata_block}
 {lineage_section}
 
-Please:
-1. Identify 2–4 distinct business domains represented in this table set
-2. Recommend which tables belong in each domain
-3. Highlight any cross-domain join dependencies that need to be resolved before splitting
-4. Suggest a descriptive name for each domain-specific Genie space
-5. Flag any tables that appear redundant or out of scope entirely
+Identify 2–4 distinct business domains in this table set and recommend how to split them into focused spaces.
 
-Be concise and practical. Use plain business language, not SQL or technical jargon."""
+Output format — use EXACTLY this structure, no extra commentary:
+
+#### Recommended Spaces
+| Proposed Space Name | Tables | Rationale |
+|---|---|---|
+| [name] | table1, table2 | [one sentence] |
+
+#### Cross-domain Dependencies
+[Bullet list of join dependencies that span proposed spaces, or "None identified."]
+
+#### Tables to Review
+[Bullet list of redundant or out-of-scope tables with a one-line reason, or "None identified."]
+
+Be concise. Plain business language only."""
 
     print(DIVIDER)
     print("DOMAIN CURATION RECOMMENDATIONS (LLM-generated)")
