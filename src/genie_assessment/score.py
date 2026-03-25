@@ -733,6 +733,9 @@ _ABBREV_EXCLUSIONS = {
     "item", "unit", "cost", "size", "list", "last", "next", "prev",
     "from", "true", "null", "data", "info", "meta", "tags", "src",
     "raw", "new", "old", "all", "any", "end", "set", "map", "log",
+    "agent", "event", "label", "score", "state", "count", "total",
+    "start", "stop", "level", "order", "index", "value", "error",
+    "limit", "group", "owner", "batch", "token", "model", "class",
 }
 
 # Known-terms dict — display labels only, not used for detection
@@ -746,7 +749,8 @@ _ABBREV_LABELS = {
     "ebitda": "EBITDA", "roe": "Return on Equity", "roa": "Return on Assets",
     "nim": "Net Interest Margin", "fum": "Funds Under Management",
     "nav": "Net Asset Value", "glp": "Gross Loan Portfolio", "npl": "Non-Performing Loan",
-    "nrr": "Net Revenue Retention", "sku": "Stock Keeping Unit",
+    "nrr": "Net Revenue Retention", "mfa": "Multi-Factor Authentication",
+    "sku": "Stock Keeping Unit",
     "gmv": "Gross Merchandise Value", "aov": "Average Order Value",
     "dau": "Daily Active Users", "mau": "Monthly Active Users",
     "ctr": "Click-Through Rate", "cvr": "Conversion Rate",
@@ -759,7 +763,7 @@ for _tid, _meta in table_metadata.items():
         continue
     for _col in _meta.get("columns", []):
         for _token in _col.get("name", "").lower().split("_"):
-            if 2 <= len(_token) <= 5 and _token not in _ABBREV_EXCLUSIONS:
+            if 2 <= len(_token) <= 5 and _token.isalpha() and _token not in _ABBREV_EXCLUSIONS:
                 _found_abbrevs.add(_token)
 
 _instr_blob_lower = instr_text_blob.lower()

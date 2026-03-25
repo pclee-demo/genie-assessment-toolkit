@@ -209,7 +209,7 @@ elif a5 == 2:
         "Diversify across user personas (manager, analyst, ops, compliance) — don't cluster around one question type",
         "Include at least one question per major business metric or KPI",
         "Phrase as natural-language questions business users would actually type, not SQL-like queries",
-        *(["Tables with no question coverage: " + ", ".join(uncovered_tables)
+        *(["Tables with no question coverage: " + ", ".join(f"`{t}`" for t in uncovered_tables)
            + " — add sample questions that feature these tables so users discover what they can answer; "
            "if no good questions exist, consider whether these tables belong in this space"] if uncovered_tables else []),
     ]))
