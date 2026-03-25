@@ -782,21 +782,36 @@ if ta_count > 0:
     )
 
 # Table coverage check — flag tables not referenced by any sample question
+# Uses table-name matching only (column token matching produced too many false positives
+# because generic tokens like 'risk', 'date', 'type' match almost every question).
+# Checks the table name and common singular/plural variants.
 uncovered_tables = []
 if sq_count >= 3 and table_count >= 2:
     for table_id in table_identifiers:
         tname = table_id.split(".")[-1].lower()
-        col_tokens = set()
-        for col in table_metadata.get(table_id, {}).get("columns", [])[:15]:
-            parts = col.get("name", "").lower().split("_")
-            col_tokens.update(p for p in parts if len(p) > 3)
-        covered = any(
-            tname in q.get("question", q.get("question_text", q.get("content", ""))).lower()
-            or any(
-                tok in q.get("question", q.get("question_text", q.get("content", ""))).lower()
-                for tok in col_tokens
-            )
+        # Build name variants: the table name itself, singular (strip trailing 's'/'es'),
+        # and the first meaningful word if the name is compound (e.g. "fraud_events" → "fraud")
+        _variants = {tname}
+        if tname.endswith("ies"):
+            _variants.add(tname[:-3] + "y")       # categories → category
+        elif tname.endswith("sses") or tname.endswith("xes"):
+            _variants.add(tname[:-2])              # assessments → assessment (via 's' below)
+        if tname.endswith("s") and len(tname) > 3:
+            _variants.add(tname[:-1])              # accounts → account
+        _parts = tname.split("_")
+        if len(_parts) > 1:
+            _variants.add(_parts[0])               # fraud_events → fraud
+            _variants.add(_parts[-1])              # fraud_events → events (and its singular)
+            if _parts[-1].endswith("s"):
+                _variants.add(_parts[-1][:-1])
+
+        sq_texts = [
+            q.get("question", q.get("question_text", q.get("content", ""))).lower()
             for q in sample_questions
+        ]
+        covered = any(
+            any(variant in sq for variant in _variants)
+            for sq in sq_texts
         )
         if not covered:
             uncovered_tables.append(tname)
