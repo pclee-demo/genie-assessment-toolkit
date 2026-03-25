@@ -231,21 +231,15 @@ if domain_output:
 
 # Sample questions section
 if question_output:
+    _question_md = re.sub(r'^#{1,3} ', '#### ', question_output, flags=re.MULTILINE)
     md_lines += [
         "---",
         "",
         "## Sample Questions & KPIs (LLM-generated)",
         "",
-        ("These questions and KPIs were generated from your table metadata. Use them in three ways: "
-         "(1) add the best ones as **Sample Questions** (Configuration > Sample Questions) to give business users "
-         "a starting point when they open the space; "
-         "(2) use the top 5 marked questions as **Benchmarks** (Configuration > Benchmarks) with a manually "
-         "verified SQL answer to measure and track Genie's accuracy over time; "
-         "(3) use the **KPIs** as the basis for **SQL Expression Measures** "
-         "(Configuration > SQL Expressions) — each KPI should become a named, reusable formula "
-         "so Genie can answer questions about it consistently without recalculating from scratch every time."),
+        "_Add top questions as **Sample Questions** and **Benchmarks**; turn KPIs into **SQL Expression Measures**._",
         "",
-        question_output,
+        _question_md,
         "",
     ]
 
