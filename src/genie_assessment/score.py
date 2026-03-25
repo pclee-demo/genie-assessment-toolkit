@@ -470,7 +470,7 @@ BIZ_RULE = [
 INLINE_SQL_PAT = re.compile(r"\bSELECT\b.{5,200}\bFROM\b", re.IGNORECASE | re.DOTALL)
 EMPHATIC_PAT   = re.compile(
     r"\*\*\s*(CRITICAL|IMPORTANT|ALWAYS|NEVER|MUST|WARNING)\b.*?\*\*|"
-    r"!!+\s*\w|CRITICAL\s+(JOIN|NOTE)\b|ALWAYS\s+(JOIN|USE|FILTER)\b", re.IGNORECASE
+    r"!!+\s*\w", re.IGNORECASE
 )
 
 schema_hits, biz_hits  = 0, 0
@@ -480,7 +480,7 @@ for i in text_instructions:
     title = i.get("title", "(untitled)")[:40]
     schema_hits += sum(1 for p in SCHEMA_DUMP if re.search(p, c, re.IGNORECASE))
     biz_hits    += sum(1 for p in BIZ_RULE    if re.search(p, c, re.IGNORECASE))
-    if len(c) > 300:            long_blocks.append(f'"{title}" ({len(c)} chars)')
+    if len(c) > 800:            long_blocks.append(f'"{title}" ({len(c)} chars)')
     if INLINE_SQL_PAT.search(c): inline_sql_blocks.append(f'"{title}"')
     if EMPHATIC_PAT.search(c):  emphatic_blocks.append(f'"{title}"')
 

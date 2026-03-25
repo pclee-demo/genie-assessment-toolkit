@@ -154,16 +154,17 @@ if a4 == 1:
         *(["Remove inline SQL from text instructions (" + ", ".join(inline_sql_blocks[:2]) + ") — move to the SQL Queries tab"] if inline_sql_blocks else []),
         "Use the 7-section template: Role → Instructions → Critical Rules → Default Filters → Business Terms → Date Handling → Data Quality Notes",
         "Keep total length under 100 lines — every line should be a rule Genie can't infer from metadata alone",
+        "See the Instructions Draft (LLM-generated) section below for a ready-to-use rewrite based on your table metadata",
     ]))
 elif a4 == 2:
     recs.append(("Instructions", SEVERITY[2], [
-        "REFINE: Instructions exist but contain content that conflicts with or duplicates UC metadata",
-        *(["Remove schema/data dictionary content (" + str(schema_hits) + " pattern(s) detected) — replace with business rules"] if schema_hits > 0 else []),
+        *(["Remove schema/data dictionary content (" + str(schema_hits) + " pattern(s) detected) — replace with business rules; Genie reads UC metadata directly"] if schema_hits > 0 else []),
         *(["Move inline SQL to the SQL Queries tab: " + ", ".join(inline_sql_blocks[:2])] if inline_sql_blocks else []),
-        *(["Replace emphatic overrides in: " + ", ".join(emphatic_blocks[:2]) + " — fix the underlying data model or use Join definitions instead"] if emphatic_blocks else []),
+        *(["Replace emphatic overrides (" + ", ".join(emphatic_blocks[:2]) + ") — fix the underlying data model or use the Joins tab instead"] if emphatic_blocks else []),
         *(["Split long instruction blocks: " + "; ".join(long_blocks[:2])] if long_blocks else []),
         *(["Trim total instructions from " + str(total_instr_lines) + " lines to ≤100 lines"] if total_instr_lines > 100 else []),
         "Add any missing business rules: fiscal year, default date range, NULL semantics, KPI definitions",
+        "See the Instructions Draft (LLM-generated) section below for a ready-to-use rewrite based on your table metadata",
     ]))
 
 # ── Area 5: Sample Questions ──────────────────────────────────────────────────
