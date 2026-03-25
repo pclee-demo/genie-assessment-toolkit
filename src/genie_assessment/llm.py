@@ -171,13 +171,14 @@ Here is the metadata for the tables in this space:
 Please generate:
 1. 15 realistic questions a business user would ask about this data, in natural language. For each question note whether it is: aggregation, filter, trend over time, comparison, or top-N.
 2. The 5 most important of those questions to use as benchmark questions (mark these clearly).
-3. 5 KPIs a business user would want to monitor regularly from this data. For each KPI:
-   - Give it a short business name (e.g. "Monthly Active Customers")
-   - Describe what it measures in one sentence
-   - Provide a plain-English formula hint that could be turned into a SQL aggregate expression (e.g. "COUNT of distinct customers with at least one transaction in the last 30 days")
+3. 5 KPIs a business user would want to monitor regularly from this data. For each KPI use EXACTLY this format (no bold anywhere in the KPI block):
+   KPI name: <short business name>
+   Description: <one sentence>
+   Formula hint: <plain-English formula, e.g. "COUNT of distinct customers with at least one transaction in the last 30 days">
    - These will be used as SQL Expression Measures in Databricks Genie (Configuration > SQL Expressions)
 
 Use plain business language. Do not write SQL. Do not reference column names directly — use business-friendly terms.
+Do not use bold or italic markdown formatting inside KPI blocks.
 Do not include any offers, follow-up suggestions, or questions at the end of your response."""
 
 print(DIVIDER)
